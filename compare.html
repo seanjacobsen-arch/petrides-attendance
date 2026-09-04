@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jacobsen & Lorenzo — Attendance Comparison</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f1f5f9;color:#0d1421;min-height:100vh}
+header{background:#003DA5;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:17px;font-weight:900}
+header p{font-size:11px;opacity:.7}
+.controls{background:#fff;border-bottom:1px solid #e2e8f0;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:10;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.controls label{font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.05em}
+select,input[type=date]{border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700;font-family:inherit;background:#fff}
+button{background:#003DA5;color:#fff;border:none;border-radius:9px;padding:7px 16px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}
+button:hover{background:#1e40af}
+.summary-bar{display:flex;gap:12px;padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-wrap:wrap}
+.sstat{text-align:center;min-width:80px}
+.snum{font-size:20px;font-weight:900;color:#003DA5}
+.snum.good{color:#059669}.snum.warn{color:#d97706}.snum.bad{color:#dc2626}
+.slbl{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase}
+.main{padding:12px}
+table{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+th{padding:8px 10px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;background:#003DA5;color:#fff;position:sticky;top:56px}
+td{border-bottom:1px solid #f1f5f9;padding:6px 10px;vertical-align:middle}
+tr:hover td{background:#f8fafc}
+.agree{background:#f0fdf4}.disagree{background:#fff1f2}.flag{background:#fff3cd}
+.name-cell{font-weight:700;white-space:nowrap}
+.cls-badge{display:inline-block;border-radius:5px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:4px;color:#fff}
+.status-P{color:#059669;font-weight:800}
+.status-A{color:#dc2626;font-weight:800}
+.status-L{color:#d97706;font-weight:800}
+.status-LP{color:#0891b2;font-weight:800}
+.status-E{color:#7c3aed;font-weight:800}
+.status-R{color:#64748b;font-weight:800}
+.status--{color:#cbd5e1}
+.diff-badge{display:inline-block;background:#fee2e2;color:#991b1b;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:800;margin-left:3px}
+.warn-badge{display:inline-block;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:800;margin-left:3px}
+.loading{text-align:center;padding:40px;color:#94a3b8;font-size:14px;font-weight:700}
+.section-hdr{background:#e8eef8;color:#003DA5;padding:6px 10px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #d1dff8}
+.legend{display:flex;gap:14px;padding:8px 16px;font-size:11px;font-weight:700;flex-wrap:wrap;background:#fff;border-top:1px solid #e2e8f0;color:#475569}
+@media print{header,controls,legend{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>📊 Jacobsen & Lorenzo — Live Attendance Comparison</h1>
+    <p>Reads directly from Firebase in real time · No file uploads needed</p>
+  </div>
+  <button onclick="window.print()" style="margin-left:auto;background:rgba(255,255,255,.15)">🖨 Print</button>
+</header>
+
+<div class="controls">
+  <div><label>Week of</label><br>
+    <input type="date" id="weekDate" value="">
+  </div>
+  <div><label>View</label><br>
+    <select id="viewMode">
+      <option value="all">All shared students</option>
+      <option value="diff">Discrepancies only</option>
+      <option value="flag">⚠️ Serious flags only</option>
+    </select>
+  </div>
+  <button onclick="renderTable()">🔍 Compare</button>
+  <div id="statusDot" style="font-size:12px;font-weight:700;color:#64748b;margin-left:auto"></div>
+</div>
+
+<div class="summary-bar" id="summaryBar" style="display:none"></div>
+<div class="main">
+  <div class="loading" id="loading">Loading data from Firebase…</div>
+  <div id="tableWrap"></div>
+</div>
+
+<div class="legend">
+  <span><b style="color:#059669">P</b> Present</span>
+  <span><b style="color:#dc2626">A</b> Absent</span>
+  <span><b style="color:#d97706">L</b> Late</span>
+  <span><b style="color:#0891b2">LP</b> Late/Pass</span>
+  <span><b style="color:#7c3aed">E</b> Excused</span>
+  <span><b style="color:#64748b">R</b> Released</span>
+  <span><b style="color:#cbd5e1">—</b> No record (Present)</span>
+  <span style="margin-left:8px">🟢 Agreement · 🔴 Discrepancy · ⚠️ Present/Absent conflict</span>
+</div>
+
+<script>
+// Firebase init
+const FIREBASE_CONFIG = {
+  apiKey:      'AIzaSyDEk2S078stgwL5Z4_QluThFvxhwFKtwhk',
+  authDomain:  'jacobsen-attendance-2627.firebaseapp.com',
+  databaseURL: 'https://jacobsen-attendance-2627-default-rtdb.firebaseio.com/',
+  appId:       '1:778437887000:web:429ff330dc7847c2cdef6d'
+};
+firebase.initializeApp(FIREBASE_CONFIG);
+const db = firebase.database();
+
+let dataJ = null, dataL = null;
+
+// Set default date to today
+const today = new Date();
+document.getElementById('weekDate').value = today.toISOString().slice(0,10);
+
+function loadData(){
+  document.getElementById('statusDot').textContent = '🔄 Connecting…';
+  db.ref('teachers/jacobsen').once('value', snap => {
+    dataJ = snap.val();
+    document.getElementById('statusDot').textContent = dataJ ? '✓ Jacobsen loaded' : '⚠️ No Jacobsen data';
+    if(dataL !== null) renderTable();
+  });
+  db.ref('teachers/lorenzo').once('value', snap => {
+    dataL = snap.val();
+    if(dataJ !== null) renderTable();
+  });
+}
+
+function getWeekDates(anyDate){
+  const d = new Date(anyDate+'T12:00:00');
+  const dow = d.getDay();
+  const mon = new Date(d); mon.setDate(d.getDate() - ((dow+6)%7));
+  const days = [];
+  for(let i=0;i<5;i++){
+    const x = new Date(mon); x.setDate(mon.getDate()+i);
+    days.push(x.toISOString().slice(0,10));
+  }
+  return days;
+}
+
+function dayLabel(ds){
+  const d = new Date(ds+'T12:00:00');
+  return ['Mon','Tue','Wed','Thu','Fri'][d.getDay()-1] + ' ' + (d.getMonth()+1)+'/'+d.getDate();
+}
+
+function getStatus(state, date, name){
+  const s = state?.[date]?.[name];
+  if(!s || !s.status || s.status === 'present') return {code:'P', label:'P'};
+  if(s.status === 'absent')       return {code:'A', label:'A'+(s.absentReason?' ('+s.absentReason+')':'')};
+  if(s.status === 'excused')      return {code:'E', label:'E'+(s.excuseReason?' ('+s.excuseReason+')':'')};
+  if(s.status === 'late')         return {code:'L', label:'L+'+(s.minutesLate||0)+'m'+(s.lateFrom?' ('+s.lateFrom+')':'')};
+  if(s.status === 'latewithpass') return {code:'LP',label:'LP'+(s.lateFrom?' ('+s.lateFrom+')':'')};
+  if(s.status === 'released')     return {code:'R', label:'R'};
+  return {code:'P', label:'P'};
+}
+
+function isSignificantDiff(a, b){
+  const presLike = ['P','LP','R'];
+  if(presLike.includes(a) && presLike.includes(b)) return false;
+  if(a==='E' && b==='E') return false;
+  return a !== b;
+}
+
+function getStudentClass(data, name){
+  if(!data?.classes) return null;
+  const cls = data.classes.find(c => Array.isArray(c.students) && c.students.includes(name));
+  return cls ? cls : null;
+}
+
+function renderTable(){
+  if(!dataJ || !dataL){
+    document.getElementById('loading').textContent = 'Still loading data…';
+    return;
+  }
+  document.getElementById('loading').style.display = 'none';
+
+  const weekDate = document.getElementById('weekDate').value;
+  const viewMode = document.getElementById('viewMode').value;
+  const days = getWeekDates(weekDate);
+
+  // Find shared students
+  const studentsJ = new Set((dataJ.classes||[]).flatMap(c=>c.students||[]));
+  const studentsL = new Set((dataL.classes||[]).flatMap(c=>c.students||[]));
+  const shared = [...studentsJ].filter(n=>studentsL.has(n)).sort();
+  const onlyJ  = [...studentsJ].filter(n=>!studentsL.has(n)).sort();
+  const onlyL  = [...studentsL].filter(n=>!studentsJ.has(n)).sort();
+
+  const stateJ = dataJ.state || {};
+  const stateL = dataL.state || {};
+
+  let agree=0, disagree=0, flags=0, totalComps=0;
+
+  // Build rows for shared students
+  const sharedRows = shared.map(name => {
+    const clsJ = getStudentClass(dataJ, name);
+    const clsL = getStudentClass(dataL, name);
+
+    let rowClass = 'agree', diffDays = [], hasFlag = false;
+    const cells = days.map(ds => {
+      const j = getStatus(stateJ, ds, name);
+      const l = getStatus(stateL, ds, name);
+      const diff = isSignificantDiff(j.code, l.code);
+      const absPres = (j.code==='A'&&['P','LP','R'].includes(l.code)) ||
+                      (l.code==='A'&&['P','LP','R'].includes(j.code));
+      totalComps++;
+      if(diff){ rowClass='disagree'; disagree++; diffDays.push(dayLabel(ds)); if(absPres){hasFlag=true;flags++;} }
+      else agree++;
+      return `<td style="white-space:nowrap">
+        <span class="status-${j.code}">${j.label}</span>
+        ${diff?'<br>':'<br>'}
+        <span class="status-${l.code}">${l.label}</span>
+        ${diff?'<span class="diff-badge">DIFF</span>':''}
+        ${absPres?'<span class="warn-badge">⚠️</span>':''}
+      </td>`;
+    }).join('');
+
+    if(viewMode==='diff' && rowClass==='agree') return null;
+    if(viewMode==='flag' && !hasFlag) return null;
+
+    const jColor = clsJ?.color||'#64748b';
+    const lColor = clsL?.color||'#64748b';
+    return `<tr class="${rowClass}">
+      <td class="name-cell">${name}
+        <span class="cls-badge" style="background:${jColor}" title="Jacobsen: ${clsJ?.label||'?'}">${clsJ?.label?.split(' ').pop()||'?'}</span>
+        <span class="cls-badge" style="background:${lColor}" title="Lorenzo: ${clsL?.label||'?'}">${clsL?.label?.split(' ').pop()||'?'}</span>
+      </td>
+      ${cells}
+      <td style="font-size:10px;color:${diffDays.length?'#dc2626':'#059669'}">${diffDays.length?'⚠ '+diffDays.join(', '):'✓ Agree'}</td>
+    </tr>`;
+  }).filter(Boolean);
+
+  const agreeRate = totalComps ? Math.round(agree/(agree+disagree)*100) : 100;
+  const weekLabel = dayLabel(days[0]) + ' – ' + dayLabel(days[4]);
+  const dayHeaders = days.map(ds=>`<th>📅 ${dayLabel(ds)}<br><span style="opacity:.6;font-size:9px">J / L</span></th>`).join('');
+
+  let html = `<table>
+    <thead><tr>
+      <th>Student</th>${dayHeaders}<th>Notes</th>
+    </tr></thead><tbody>`;
+
+  if(sharedRows.length){
+    html += `<tr><td colspan="7" class="section-hdr">Shared Students (${shared.length} total · showing ${sharedRows.length})</td></tr>`;
+    html += sharedRows.join('');
+  } else {
+    html += `<tr><td colspan="7" style="text-align:center;padding:20px;color:#94a3b8">No discrepancies found this week 🎉</td></tr>`;
+  }
+
+  if(viewMode==='all' && onlyJ.length){
+    html += `<tr><td colspan="7" class="section-hdr">Only in Jacobsen's roster (${onlyJ.length})</td></tr>`;
+    onlyJ.forEach(n=>{
+      const cls=getStudentClass(dataJ,n);
+      const cells=days.map(ds=>{const j=getStatus(stateJ,ds,n);return`<td><span class="status-${j.code}">${j.label}</span><br><span class="status--">—</span></td>`;}).join('');
+      html+=`<tr><td class="name-cell">${n}<span class="cls-badge" style="background:${cls?.color||'#64748b'}">${cls?.label?.split(' ').pop()||'?'}</span></td>${cells}<td style="color:#94a3b8;font-size:10px">Not in Lorenzo's roster</td></tr>`;
+    });
+  }
+  if(viewMode==='all' && onlyL.length){
+    html += `<tr><td colspan="7" class="section-hdr">Only in Lorenzo's roster (${onlyL.length})</td></tr>`;
+    onlyL.forEach(n=>{
+      const cls=getStudentClass(dataL,n);
+      const cells=days.map(ds=>{const l=getStatus(stateL,ds,n);return`<td><span class="status--">—</span><br><span class="status-${l.code}">${l.label}</span></td>`;}).join('');
+      html+=`<tr><td class="name-cell">${n}<span class="cls-badge" style="background:${cls?.color||'#64748b'}">${cls?.label?.split(' ').pop()||'?'}</span></td>${cells}<td style="color:#94a3b8;font-size:10px">Not in Jacobsen's roster</td></tr>`;
+    });
+  }
+
+  html += '</tbody></table>';
+  document.getElementById('tableWrap').innerHTML = html;
+
+  // Summary bar
+  document.getElementById('summaryBar').style.display = 'flex';
+  document.getElementById('summaryBar').innerHTML =
+    `<div class="sstat"><div class="snum">${shared.length}</div><div class="slbl">Shared Students</div></div>
+     <div class="sstat"><div class="snum ${agreeRate>=95?'good':agreeRate>=80?'warn':'bad'}">${agreeRate}%</div><div class="slbl">Agreement Rate</div></div>
+     <div class="sstat"><div class="snum ${disagree?'warn':'good'}">${disagree}</div><div class="slbl">Discrepancies</div></div>
+     <div class="sstat"><div class="snum ${flags?'bad':'good'}">${flags}</div><div class="slbl">⚠️ Serious Flags</div></div>
+     <div class="sstat"><div class="snum">${onlyJ.length}</div><div class="slbl">Jacobsen Only</div></div>
+     <div class="sstat"><div class="snum">${onlyL.length}</div><div class="slbl">Lorenzo Only</div></div>
+     <div style="margin-left:auto;font-size:11px;color:#64748b;align-self:center">Week of ${weekLabel}</div>`;
+
+  document.getElementById('statusDot').textContent = '✓ Live data · ' + new Date().toLocaleTimeString();
+}
+
+// Load on page open
+loadData();
+</script>
+</body></html>
