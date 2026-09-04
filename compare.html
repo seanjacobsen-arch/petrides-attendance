@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Petrides — Student Attendance Lookup</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f1f5f9;color:#0d1421;min-height:100vh}
+header{background:#003DA5;color:#fff;padding:12px 20px}
+header h1{font-size:17px;font-weight:900}
+header p{font-size:11px;opacity:.7;margin-top:2px}
+.bar{background:#fff;border-bottom:1px solid #e2e8f0;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;position:sticky;top:0;z-index:20;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.srch{flex:1;min-width:180px;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px 12px;font-size:14px;font-family:inherit;outline:none}
+.srch:focus{border-color:#003DA5}
+input[type=date]{border:1.5px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-size:13px;font-family:inherit}
+button{border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}
+.btn-all{background:#003DA5;color:#fff}
+.btn-all:hover{background:#1e40af}
+.btn-pri{background:#003DA5;color:#fff}
+.status-dot{font-size:11px;color:#64748b;font-weight:700}
+.main{padding:12px;max-width:1100px;margin:0 auto}
+/* Loading */
+.loading{text-align:center;padding:40px;color:#94a3b8;font-size:14px;font-weight:700}
+/* Student list */
+.stu-card{background:#fff;border-radius:12px;border:1.5px solid #e2e8f0;margin-bottom:8px;overflow:hidden;cursor:pointer;transition:box-shadow .15s}
+.stu-card:hover{box-shadow:0 2px 12px rgba(0,61,165,.1)}
+.stu-card.open{border-color:#003DA5}
+.stu-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px}
+.stu-name{font-size:14px;font-weight:900;flex:1}
+.stu-schedule{display:flex;gap:6px;flex-wrap:wrap}
+.per-pill{display:inline-flex;align-items:center;gap:4px;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:800;color:#fff}
+.per-pill .per-num{opacity:.8;font-size:10px}
+.flag-chip{background:#fee2e2;color:#991b1b;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:800}
+.agree-chip{background:#dcfce7;color:#166534;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:800}
+.chevron{font-size:12px;color:#94a3b8;transition:transform .15s}
+.stu-card.open .chevron{transform:rotate(90deg)}
+/* Detail */
+.stu-detail{padding:0 14px 14px;display:none}
+.stu-card.open .stu-detail{display:block}
+.cls-block{margin-bottom:10px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
+.cls-hdr-row{display:flex;align-items:center;gap:8px;padding:7px 12px;color:#fff}
+.cls-hdr-row .cls-info{flex:1}
+.cls-teacher{font-size:13px;font-weight:900}
+.cls-meta{font-size:10px;opacity:.8}
+.week-row{display:flex}
+.day-cell{flex:1;text-align:center;padding:7px 4px;border-right:1px solid #f1f5f9;font-size:11px}
+.day-cell:last-child{border-right:none}
+.day-lbl{font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;margin-bottom:3px}
+.status-P{color:#059669;font-weight:800}
+.status-A{color:#dc2626;font-weight:800}
+.status-L{color:#d97706;font-weight:800}
+.status-LP{color:#0891b2;font-weight:800}
+.status-E{color:#7c3aed;font-weight:800}
+.status-R{color:#64748b;font-weight:800}
+.status--{color:#cbd5e1}
+.diff-row{background:#fff8f1;border-top:1px dashed #fde68a;padding:5px 12px;font-size:10px;color:#92400e;font-weight:700}
+.legend{display:flex;gap:12px;padding:8px 16px;font-size:11px;font-weight:700;flex-wrap:wrap;background:#fff;border-top:1px solid #e2e8f0;position:sticky;bottom:0;z-index:10;color:#475569}
+</style>
+</head><body>
+
+<header>
+  <h1>🔍 Petrides — Student Schedule & Attendance Lookup</h1>
+  <p>See any student's schedule across all teachers · Click a student to see their week</p>
+</header>
+
+<div class="bar">
+  <input class="srch" type="text" id="searchBox" placeholder="Search student name…" oninput="filterStudents()">
+  <input type="date" id="weekDate">
+  <button class="btn-all" onclick="showAll()">Show All Shared Students</button>
+  <span class="status-dot" id="statusDot">Loading…</span>
+</div>
+
+<div class="main">
+  <div class="loading" id="loading">Connecting to Firebase…</div>
+  <div id="studentList"></div>
+</div>
+
+<div class="legend">
+  <span><b style="color:#059669">P</b> Present</span>
+  <span><b style="color:#dc2626">A</b> Absent</span>
+  <span><b style="color:#d97706">L+n</b> Late (minutes)</span>
+  <span><b style="color:#0891b2">LP</b> Late/Pass</span>
+  <span><b style="color:#7c3aed">E</b> Excused</span>
+  <span><b style="color:#64748b">R</b> Released</span>
+  <span><b style="color:#cbd5e1">—</b> Present (no record)</span>
+</div>
+
+<script>
+// ── Firebase ──────────────────────────────────────────────────
+firebase.initializeApp({
+  apiKey:      'AIzaSyDEk2S078stgwL5Z4_QluThFvxhwFKtwhk',
+  authDomain:  'jacobsen-attendance-2627.firebaseapp.com',
+  databaseURL: 'https://jacobsen-attendance-2627-default-rtdb.firebaseio.com/',
+  appId:       '1:778437887000:web:429ff330dc7847c2cdef6d'
+});
+const db = firebase.database();
+
+// ── Teacher registry ──────────────────────────────────────────
+const TEACHERS = [
+  {name:'Jacobsen',    key:'jacobsen'},
+  {name:'Lorenzo',     key:'lorenzo'},
+  {name:'Noto',        key:'noto'},
+  {name:'Duskic',      key:'duskic'},
+  {name:'Rodriguez',   key:'rodriguez'},
+  {name:'Mel Cambria', key:'mel_cambria'},
+  {name:'Vito Cambria',key:'vito_cambria'},
+  {name:'Perry',       key:'perry'},
+  {name:'Olah',        key:'olah'},
+];
+
+const PERIOD_TIMES = {1:'8:00–8:49',2:'8:51–9:36',3:'9:38–10:23',4:'10:24–11:10',5:'11:12–11:57',6:'11:59–12:44',7:'12:46–1:31',8:'1:33–2:20'};
+
+document.getElementById('weekDate').value = new Date().toISOString().slice(0,10);
+
+// ── Data ──────────────────────────────────────────────────────
+let allData = {};       // key → firebase data
+let studentMap = {};    // name → [{teacher,key,cls,state}]
+let loaded = 0;
+
+function getWeekDates(any){
+  const d=new Date(any+'T12:00:00'),dow=d.getDay();
+  const mon=new Date(d);mon.setDate(d.getDate()-((dow+6)%7));
+  return Array.from({length:5},(_,i)=>{const x=new Date(mon);x.setDate(mon.getDate()+i);return x.toISOString().slice(0,10);});
+}
+function dayLabel(ds){
+  const d=new Date(ds+'T12:00:00');
+  return ['Mon','Tue','Wed','Thu','Fri'][d.getDay()-1]+'\n'+(d.getMonth()+1)+'/'+d.getDate();
+}
+function getStatus(state,date,name){
+  const s=state?.[date]?.[name];
+  if(!s||!s.status||s.status==='present') return {code:'P',label:'P'};
+  if(s.status==='absent')       return {code:'A',label:'A'+(s.absentReason?' ('+s.absentReason+')':'')};
+  if(s.status==='excused')      return {code:'E',label:'E'+(s.excuseReason?' ('+s.excuseReason+')':'')};
+  if(s.status==='late')         return {code:'L',label:'L+'+(s.minutesLate||0)+'m'};
+  if(s.status==='latewithpass') return {code:'LP',label:'LP'};
+  if(s.status==='released')     return {code:'R',label:'R'};
+  return {code:'P',label:'P'};
+}
+
+function buildStudentMap(){
+  studentMap = {};
+  TEACHERS.forEach(t=>{
+    const data = allData[t.key];
+    if(!data?.classes) return;
+    data.classes.forEach(cls=>{
+      (cls.students||[]).forEach(name=>{
+        if(!studentMap[name]) studentMap[name]=[];
+        studentMap[name].push({
+          teacher: t.name, key: t.key,
+          cls: cls,
+          state: data.state||{}
+        });
+      });
+    });
+  });
+  // Sort each student's entries by period number
+  Object.keys(studentMap).forEach(name=>{
+    studentMap[name].sort((a,b)=>(a.cls.periodNum||99)-(b.cls.periodNum||99));
+  });
+}
+
+function loadAllTeachers(){
+  const promises = TEACHERS.map(t=>
+    db.ref('teachers/'+t.key).once('value').then(snap=>{
+      if(snap.val()) allData[t.key]=snap.val();
+      loaded++;
+      document.getElementById('statusDot').textContent = 'Loading '+loaded+'/'+TEACHERS.length+'…';
+    }).catch(()=>{ loaded++; })
+  );
+  Promise.all(promises).then(()=>{
+    buildStudentMap();
+    const shared = Object.keys(studentMap).filter(n=>studentMap[n].length>1).length;
+    document.getElementById('statusDot').textContent = '✓ '+Object.keys(studentMap).length+' students · '+shared+' shared across teachers';
+    document.getElementById('loading').style.display='none';
+  });
+}
+
+// ── Render ────────────────────────────────────────────────────
+function renderStudent(name, open){
+  const entries = studentMap[name];
+  if(!entries) return '';
+  const days = getWeekDates(document.getElementById('weekDate').value);
+
+  // Build schedule pills
+  const pills = entries.map(e=>{
+    const p = e.cls.periodNum;
+    return `<span class="per-pill" style="background:${e.cls.color||'#64748b'}">
+      <span class="per-num">P${p||'?'}</span> ${e.teacher}
+    </span>`;
+  }).join('');
+
+  // Check for any discrepancies this week across periods
+  let hasFlag = false;
+  if(entries.length > 1){
+    days.forEach(ds=>{
+      const codes = entries.map(e=>getStatus(e.state,ds,name).code);
+      const presLike = c=>['P','LP','R'].includes(c);
+      for(let i=0;i<codes.length;i++) for(let j=i+1;j<codes.length;j++){
+        if((codes[i]==='A' && presLike(codes[j])) || (codes[j]==='A' && presLike(codes[i]))) hasFlag=true;
+      }
+    });
+  }
+
+  // Detail: one block per teacher/period
+  const detailBlocks = entries.map(e=>{
+    const p = e.cls.periodNum;
+    const time = PERIOD_TIMES[p]||'';
+    const dayCells = days.map(ds=>{
+      const st = getStatus(e.state,ds,name);
+      const [dl,dd] = dayLabel(ds).split('\n');
+      return `<div class="day-cell">
+        <div class="day-lbl">${dl}<br>${dd}</div>
+        <span class="status-${st.code}">${st.label}</span>
+      </div>`;
+    }).join('');
+    return `<div class="cls-block">
+      <div class="cls-hdr-row" style="background:${e.cls.color||'#64748b'}">
+        <div class="cls-info">
+          <div class="cls-teacher">${e.teacher} — ${e.cls.label||'Class'}</div>
+          <div class="cls-meta">Period ${p||'?'}${time?' · '+time:''}</div>
+        </div>
+      </div>
+      <div class="week-row">${dayCells}</div>
+    </div>`;
+  }).join('');
+
+  const chipHtml = hasFlag
+    ? '<span class="flag-chip">⚠️ Conflict</span>'
+    : (entries.length>1?'<span class="agree-chip">✓</span>':'');
+
+  return `<div class="stu-card${open?' open':''}" id="sc-${name.replace(/[^a-z]/gi,'_')}" onclick="toggleStudent('${name.replace(/'/g,"\\'")}')">
+    <div class="stu-hdr">
+      <div class="stu-name">${name}</div>
+      <div class="stu-schedule">${pills}</div>
+      ${chipHtml}
+      <span class="chevron">›</span>
+    </div>
+    <div class="stu-detail">${detailBlocks}</div>
+  </div>`;
+}
+
+function toggleStudent(name){
+  const id = 'sc-'+name.replace(/[^a-z]/gi,'_');
+  const el = document.getElementById(id);
+  if(el) el.classList.toggle('open');
+}
+
+let currentList = [];
+
+function showAll(){
+  document.getElementById('searchBox').value='';
+  currentList = Object.keys(studentMap).filter(n=>studentMap[n].length>1).sort();
+  renderList(currentList);
+}
+
+function filterStudents(){
+  const q = document.getElementById('searchBox').value.toLowerCase().trim();
+  if(!q){ document.getElementById('studentList').innerHTML='<div class="loading">Type a name to search, or click "Show All Shared Students".</div>'; return; }
+  currentList = Object.keys(studentMap).filter(n=>n.toLowerCase().includes(q)).sort();
+  renderList(currentList, true);
+}
+
+function renderList(names, openFirst){
+  if(!names.length){
+    document.getElementById('studentList').innerHTML='<div class="loading">No students found.</div>';
+    return;
+  }
+  document.getElementById('studentList').innerHTML = names.map((n,i)=>renderStudent(n, openFirst&&i===0)).join('');
+}
+
+// Start
+loadAllTeachers();
+</script>
+</body></html>
