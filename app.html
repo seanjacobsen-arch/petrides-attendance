@@ -894,31 +894,18 @@ const TEACHER_REGISTRY={
   'lezoli':{name:'Lezoli',key:'lezoli',ls:'petrides_lezoli_v1'},
   'sullivan':{name:'Sullivan',key:'sullivan',ls:'petrides_sullivan_v1'},
   'o_hare':{name:"O'Hare",key:'o_hare',ls:'petrides_o_hare_v1'},
-  'cucuzza':{name:'S. Cucuzza',key:'cucuzza',ls:'petrides_cucuzza_v1'},
+  'cucuzza':{name:'Cucuzza',key:'cucuzza',ls:'petrides_cucuzza_v1'},
   'matos':{name:'Matos',key:'matos',ls:'petrides_matos_v1'},
   'cintula':{name:'Cintula',key:'cintula',ls:'petrides_cintula_v1'}
 };
-(function(){{
-  const params=new URLSearchParams(window.location.search);
-  const t=(params.get('t')||'').toLowerCase().replace(/[^a-z0-9_]/g,'');
-  const teacher=TEACHER_REGISTRY[t];
-  if(!teacher){{
-    document.addEventListener('DOMContentLoaded',function(){{
-      document.body.innerHTML='<div style="font-family:sans-serif;padding:40px;max-width:500px;margin:0 auto"><h2 style="color:#003DA5">Petrides Attendance</h2><p style="color:#64748b;margin-bottom:20px">Select your name:</p>'+Object.values(TEACHER_REGISTRY).map(t=>'<a href="?t='+t.key+'" style="display:block;padding:12px 16px;margin-bottom:8px;background:#003DA5;color:#fff;border-radius:10px;text-decoration:none;font-weight:700">'+t.name+'</a>').join('')+'</div>';
-    }});
-    return;
-  }}
-  window.TEACHER_KEY=teacher.key;
-  window.TEACHER_NAME=teacher.name;
-  window.LS_KEY_OVERRIDE=teacher.ls;
-}})();
+(function(){const params=new URLSearchParams(window.location.search);
+const t=(params.get('t')||'').toLowerCase().replace(/[^a-z0-9_]/g,'');
+const teacher=TEACHER_REGISTRY[t];
+if(!teacher){document.addEventListener('DOMContentLoaded',function(){
+document.body.innerHTML='<div style="font-family:sans-serif;padding:40px;max-width:500px;margin:0 auto"><h2 style="color:#003DA5">Petrides Attendance</h2><p style="color:#64748b;margin-bottom:20px">Select your name:</p>'+Object.values(TEACHER_REGISTRY).map(t=>'<a href="?t='+t.key+'" style="display:block;padding:12px 16px;margin-bottom:8px;background:#003DA5;color:#fff;border-radius:10px;text-decoration:none;font-weight:700">'+t.name+'</a>').join('')+'</div>';});return;}
+window.TEACHER_KEY=teacher.key;window.TEACHER_NAME=teacher.name;window.LS_KEY_OVERRIDE=teacher.ls;})();
 const TEACHER_KEY=window.TEACHER_KEY||'unknown';
-const FIREBASE_HARDCODED={
-  apiKey:'AIzaSyDEk2S078stgwL5Z4_QluThFvxhwFKtwhk',
-  authDomain:'jacobsen-attendance-2627.firebaseapp.com',
-  databaseURL:'https://jacobsen-attendance-2627-default-rtdb.firebaseio.com/',
-  appId:'1:778437887000:web:429ff330dc7847c2cdef6d'
-};
+const FIREBASE_HARDCODED={apiKey:'AIzaSyDEk2S078stgwL5Z4_QluThFvxhwFKtwhk',authDomain:'jacobsen-attendance-2627.firebaseapp.com',databaseURL:'https://jacobsen-attendance-2627-default-rtdb.firebaseio.com/',appId:'1:778437887000:web:429ff330dc7847c2cdef6d'};
 // ══════════════════════════════════════════════════════════
 // DATA
 // ══════════════════════════════════════════════════════════
@@ -1229,6 +1216,20 @@ function absenceAlert(name){
   return null;
 }
 function attPct(name){
+  // Demo mode: use simulated data
+  if(typeof _demoMode!=='undefined'&&_demoMode&&typeof _demoData!=='undefined'){
+    const days=Object.keys(_demoData).sort();
+    if(!days.length) return null;
+    const tot=days.length; let ab=0,lf=0;
+    days.forEach(dk2=>{
+      const s=_demoData[dk2]?.[name]; if(!s)return;
+      if(s.status==='absent')ab++;
+      else if(s.status==='late')lf+=(parseInt(s.minutesLate)||0)/45;
+    });
+    const pct=Math.max(0,Math.min(100,(tot-ab-lf)/tot*100));
+    return{pct,gr:pct>=90?'hi':pct>=75?'md':'lo',tot,ab,lf};
+  }
+  // Live data
   if(!semConfig.startDate) return null;
   const cls=CLASSES.find(c=>c.id===activeClass);
   const pm=cls?.periodMins||semConfig.periodMins||45;
@@ -1240,7 +1241,7 @@ function attPct(name){
     const s=day[name]; if(!s) return;
     const d=new Date(dk2+'T00:00:00');
     if(d<semConfig.startDate||d>countTo) return;
-    if(!isSchoolDay(dk2,pNum)) return; // skip off days in counting
+    if(!isSchoolDay(dk2,pNum)) return;
     if(s.status==='absent') ab+=1;
     if(s.status==='late') lf+=(parseInt(s.minutesLate)||0)/pm;
   });
@@ -3919,27 +3920,7 @@ function toggleDemoMode(){
   renderList();
 }
 
-// Patch attPct to use demo data when in demo mode
-const _origAttPct = attPct;
-function attPct(name){
-  if(!_demoMode) return _origAttPct(name);
-  // Calculate from demo data
-  const cls = CLASSES.find(c=>c.id===activeClass);
-  const pNum = cls?.periodNum||1;
-  const days = Object.keys(_demoData).sort();
-  if(!days.length) return null;
-  const tot = days.length;
-  let ab=0, lf=0;
-  days.forEach(dk2=>{
-    const s=_demoData[dk2]?.[name];
-    if(!s)return;
-    if(s.status==='absent')ab++;
-    else if(s.status==='late')lf+=(parseInt(s.minutesLate)||0)/45;
-  });
-  const pct=Math.max(0,Math.min(100,(tot-ab-lf)/tot*100));
-  const gr=pct>=90?'hi':pct>=75?'md':'lo';
-  return {pct,gr};
-}
+// Demo attPct handled inside original function
 
 
 // ══════════════════════════════════════════════════════════
