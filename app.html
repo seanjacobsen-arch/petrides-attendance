@@ -1262,6 +1262,7 @@ function attPct(name){
       const s=_demoData[dk2]?.[name]; if(!s)return;
       if(s.status==='absent')ab++;
       else if(s.status==='late')lf+=(parseInt(s.minutesLate)||0)/45;
+      else if(s.status==='latewithpass')lf+=(parseInt(s.minutesLate)||0)/45*0.5;
     });
     const pct=Math.max(0,Math.min(100,(tot-ab-lf)/tot*100));
     return{pct,gr:pct>=90?'hi':pct>=75?'md':'lo',tot,ab,lf};
@@ -1280,7 +1281,9 @@ function attPct(name){
     if(d<semConfig.startDate||d>countTo) return;
     if(!isSchoolDay(dk2,pNum)) return;
     if(s.status==='absent') ab+=1;
-    if(s.status==='late') lf+=(parseInt(s.minutesLate)||0)/pm;
+    if(s.status==='excused'){ /* handled by excuseCount elsewhere */ }
+    if(s.status==='late')         lf+=(parseInt(s.minutesLate)||0)/pm;
+    if(s.status==='latewithpass') lf+=(parseInt(s.minutesLate)||0)/pm*0.5; // 50% — pass reduces but doesn't eliminate penalty
   });
   const pct=Math.max(0,(tot-ab-lf)/tot)*100;
   const gr=pct>=90?'hi':pct>=75?'md':'lo';
