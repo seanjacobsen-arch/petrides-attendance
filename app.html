@@ -563,6 +563,7 @@ a[href*="netlify"]:not(.nav-link){
 <div class="top-bar">
   <div class="tb-title" id="topTitle">Petrides Attendance</div>
     <button onclick="toggleLayout()" class="layout-toggle" id="layoutToggleBtn" title="Switch horizontal/vertical">⇄</button>
+    <button onclick="toggleDemoMode()" style="margin-left:0;background:rgba(255,165,0,.2);border:1px solid rgba(255,165,0,.4);border-radius:7px;padding:3px 8px;color:rgba(255,200,100,.85);font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;cursor:pointer" title="Preview attendance %">Preview</button>
     <button onclick="lockApp()" style="margin-left:0;background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:4px 10px;color:rgba(255,255,255,.8);font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer" title="Lock app">🔒</button>
   <div class="tb-save" id="saveLabel">Saved</div>
 </div>
@@ -793,7 +794,7 @@ a[href*="netlify"]:not(.nav-link){
 </div>
 <!-- BOTTOM BAR: D/W/M/S class attendance + Submit -->
 <div class="bbar" id="bbar" style="padding:0 8px;gap:0">
-  <button class="sub-btn" onclick="openSummary()" style="margin-right:6px">Submit</button>
+  <div id="autoSaveStatus" style="font-size:10px;font-weight:800;color:rgba(255,255,255,.6);padding:0 10px;white-space:nowrap">Saved ✓</div>
   <div class="bstat dwms-cell" id="bbarD" title="Daily class attendance rate">
     <div class="dwms-lbl">D</div><div class="dwms-val" id="bbarDv">—</div>
   </div>
@@ -867,22 +868,50 @@ const TEACHER_REGISTRY={
   'mel_cambria':{name:'Mel Cambria',key:'mel_cambria',ls:'petrides_mel_cambria_v1'},
   'vito_cambria':{name:'Vito Cambria',key:'vito_cambria',ls:'petrides_vito_cambria_v1'},
   'perry':{name:'Perry',key:'perry',ls:'petrides_perry_v1'},
-  'olah':{name:'Olah',key:'olah',ls:'petrides_olah_v1'}
+  'olah':{name:'Olah',key:'olah',ls:'petrides_olah_v1'},
+  'benedetto':{name:'Benedetto',key:'benedetto',ls:'petrides_benedetto_v1'},
+  'ruppert':{name:'Ruppert',key:'ruppert',ls:'petrides_ruppert_v1'},
+  'c_cucuzza':{name:'C. Cucuzza',key:'c_cucuzza',ls:'petrides_c_cucuzza_v1'},
+  'carrara':{name:'Carrara',key:'carrara',ls:'petrides_carrara_v1'},
+  'martinez':{name:'Martinez',key:'martinez',ls:'petrides_martinez_v1'},
+  'richardson':{name:'Richardson',key:'richardson',ls:'petrides_richardson_v1'},
+  'vazquez':{name:'Vazquez',key:'vazquez',ls:'petrides_vazquez_v1'},
+  'salem':{name:'Salem',key:'salem',ls:'petrides_salem_v1'},
+  'ucelli':{name:'Ucelli',key:'ucelli',ls:'petrides_ucelli_v1'},
+  'j_cucuzza':{name:'J. Cucuzza',key:'j_cucuzza',ls:'petrides_j_cucuzza_v1'},
+  'delahanty':{name:'Delahanty',key:'delahanty',ls:'petrides_delahanty_v1'},
+  'kull':{name:'Kull',key:'kull',ls:'petrides_kull_v1'},
+  'pena':{name:'Pena',key:'pena',ls:'petrides_pena_v1'},
+  'picca':{name:'Picca',key:'picca',ls:'petrides_picca_v1'},
+  'caccese':{name:'Caccese',key:'caccese',ls:'petrides_caccese_v1'},
+  'dragonetti':{name:'Dragonetti',key:'dragonetti',ls:'petrides_dragonetti_v1'},
+  'rockfeller':{name:'Rockfeller',key:'rockfeller',ls:'petrides_rockfeller_v1'},
+  'ferrante':{name:'Ferrante',key:'ferrante',ls:'petrides_ferrante_v1'},
+  'ibrahim':{name:'Ibrahim',key:'ibrahim',ls:'petrides_ibrahim_v1'},
+  'devoll':{name:'Devoll',key:'devoll',ls:'petrides_devoll_v1'},
+  'lucchesi':{name:'Lucchesi',key:'lucchesi',ls:'petrides_lucchesi_v1'},
+  'rangel':{name:'Rangel',key:'rangel',ls:'petrides_rangel_v1'},
+  'lezoli':{name:'Lezoli',key:'lezoli',ls:'petrides_lezoli_v1'},
+  'sullivan':{name:'Sullivan',key:'sullivan',ls:'petrides_sullivan_v1'},
+  'o_hare':{name:"O'Hare",key:'o_hare',ls:'petrides_o_hare_v1'},
+  'cucuzza':{name:'S. Cucuzza',key:'cucuzza',ls:'petrides_cucuzza_v1'},
+  'matos':{name:'Matos',key:'matos',ls:'petrides_matos_v1'},
+  'cintula':{name:'Cintula',key:'cintula',ls:'petrides_cintula_v1'}
 };
-(function(){
+(function(){{
   const params=new URLSearchParams(window.location.search);
   const t=(params.get('t')||'').toLowerCase().replace(/[^a-z0-9_]/g,'');
   const teacher=TEACHER_REGISTRY[t];
-  if(!teacher){
-    document.addEventListener('DOMContentLoaded',function(){
+  if(!teacher){{
+    document.addEventListener('DOMContentLoaded',function(){{
       document.body.innerHTML='<div style="font-family:sans-serif;padding:40px;max-width:500px;margin:0 auto"><h2 style="color:#003DA5">Petrides Attendance</h2><p style="color:#64748b;margin-bottom:20px">Select your name:</p>'+Object.values(TEACHER_REGISTRY).map(t=>'<a href="?t='+t.key+'" style="display:block;padding:12px 16px;margin-bottom:8px;background:#003DA5;color:#fff;border-radius:10px;text-decoration:none;font-weight:700">'+t.name+'</a>').join('')+'</div>';
-    });
+    }});
     return;
-  }
+  }}
   window.TEACHER_KEY=teacher.key;
   window.TEACHER_NAME=teacher.name;
   window.LS_KEY_OVERRIDE=teacher.ls;
-})();
+}})();
 const TEACHER_KEY=window.TEACHER_KEY||'unknown';
 const FIREBASE_HARDCODED={
   apiKey:'AIzaSyDEk2S078stgwL5Z4_QluThFvxhwFKtwhk',
@@ -975,7 +1004,8 @@ setTimeout(buildPsSelector,500);
 // Firebase calls checkInitWizard() which starts startBellPoller() once data loads.
 // Safety fallback: if Firebase doesn't connect in 4 seconds, start locally.
 setTimeout(()=>{
-  if(!_fbEnabled){startBellPoller();checkInitWizard();}
+  if(!_fbEnabled){startBellPoller();checkInitWizard();
+  setTimeout(checkInvitations, 3000);}
   else{updateCountdownBar();updateBbar();}
 },4000);
     }catch(e){ setSvLabel('error'); }
@@ -1479,7 +1509,7 @@ function setSt(name,status){
   if(!['late','latewithpass'].includes(s.status)){s.minutesLate='';s.lateHasPass=false;s.lateFrom='';}
   if(s.status!=='excused'){s.excuseReason='';s.excuseCustom='';}
   if(s.status!=='absent'){s.absentReason='';}
-  refreshCard(name); updateBBar(); scheduleSave();
+  refreshCard(name); updateBBar(); scheduleSave(); showSaveStatus("Unsaved • saves in 20s","rgba(255,220,100,.9)"); triggerAutoSubmit();
   // Panel collapsed via re-click (see below)
 }
 
@@ -1546,7 +1576,7 @@ function rstCard(name){
   const pNum=getPeriodNum(cls);
   const def=(isTod&&pNum&&!periodHasStarted(pNum))?null:'present';
   Object.assign(s,{status:def,excuseReason:'',excuseCustom:'',minutesLate:'',events:{},eventMins:{},notes:'',expanded:true,callLog:s.callLog||[],adminInformed:s.adminInformed||[]});
-  refreshCard(name); updateBBar(); scheduleSave();
+  refreshCard(name); updateBBar(); scheduleSave(); showSaveStatus("Unsaved • saves in 20s","rgba(255,220,100,.9)"); triggerAutoSubmit();
 }
 function updateBBar(){
   const cls=CLASSES.find(c=>c.id===activeClass); if(!cls)return;
@@ -2052,7 +2082,7 @@ function renderRoster(){
     if(!Array.isArray(cls.students))cls.students=[];
     const sec=document.createElement('div');sec.className='cls-sec';
     sec.innerHTML=`
-      <div class="cls-hdr" style="background:${cls.color||'#003DA5'}"><span style="width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.4);display:inline-block;margin-right:6px"></span><span class="cls-nm">${cls.label}</span><span class="cls-ct">${(cls.students||[]).length} students</span><button onclick="toggleClsColor('${cls.id}')" style="background:rgba(255,255,255,.2);border:none;border-radius:7px;padding:3px 8px;color:#fff;font-size:11px;font-weight:800;cursor:pointer;margin-left:8px" title="Change color">🎨</button></div>
+      <div class="cls-hdr" style="background:${cls.color||'#003DA5'}"><span style="width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.4);display:inline-block;margin-right:6px"></span><span class="cls-nm">${cls.label}</span><span class="cls-ct">${(cls.students||[]).length} students</span><button onclick="toggleClsColor('${cls.id}')" style="background:rgba(255,255,255,.2);border:none;border-radius:7px;padding:3px 8px;color:#fff;font-size:11px;font-weight:800;cursor:pointer;margin-left:8px" title="Change color">🎨</button><button onclick="openCoteachModal('${cls.id}')" style="background:rgba(255,255,255,.2);border:none;border-radius:7px;padding:3px 8px;color:#fff;font-size:11px;font-weight:800;cursor:pointer;margin-left:4px" title="Co-teach with another teacher">👥</button></div>
       <div id="clscp-${cls.id}" style="display:none;padding:8px 12px;background:var(--bg);border:1px solid var(--bdr);flex-wrap:wrap;gap:5px"></div>
       <div class="cls-mgmt">
         <button class="rb-up" ${ci===0?'disabled':''} onclick="moveCls('${cls.id}',-1)">▲</button>
@@ -3455,6 +3485,7 @@ function loadFromFirebase(){
     if(!data){
       // No Firebase data yet — check if wizard needed
       checkInitWizard();
+  setTimeout(checkInvitations, 3000);
       return;
     }
     const fbTime=data.lastSaved||0;
@@ -3483,9 +3514,11 @@ function loadFromFirebase(){
       updateCountdownBar();updateBbar();
     }
     checkInitWizard();
+  setTimeout(checkInvitations, 3000);
   },err=>{
     console.warn('Firebase read failed:',err.message);
     checkInitWizard();
+  setTimeout(checkInvitations, 3000);
   });
 }
 
@@ -3851,6 +3884,203 @@ async function startOver(){
   location.reload();
 }
 
+
+// ── Demo / Preview Mode ───────────────────────────────────────
+let _demoMode = false;
+let _demoData = {};
+
+function toggleDemoMode(){
+  _demoMode = !_demoMode;
+  if(_demoMode){
+    // Generate sample attendance for current class
+    _demoData = {};
+    const cls = CLASSES.find(c=>c.id===activeClass);
+    if(!cls)return;
+    const today = new Date();
+    // Generate 15 days of past attendance (before today)
+    for(let d=1;d<=15;d++){
+      const date = new Date(today);
+      date.setDate(today.getDate()-d);
+      if(date.getDay()===0||date.getDay()===6)continue; // skip weekends
+      const dk2 = dkey(date);
+      _demoData[dk2]={};
+      cls.students.forEach((name,i)=>{
+        const rand=Math.random();
+        if(rand<0.02)      _demoData[dk2][name]={status:'absent'};
+        else if(rand<0.05) _demoData[dk2][name]={status:'late',minutesLate:'8'};
+        else if(rand<0.06) _demoData[dk2][name]={status:'excused'};
+      });
+    }
+    showSaveStatus('DEMO MODE — not real data','rgba(255,150,50,.9)');
+  } else {
+    _demoData={};
+    showSaveStatus('Demo off — live data','rgba(255,255,255,.6)');
+  }
+  renderList();
+}
+
+// Patch attPct to use demo data when in demo mode
+const _origAttPct = attPct;
+function attPct(name){
+  if(!_demoMode) return _origAttPct(name);
+  // Calculate from demo data
+  const cls = CLASSES.find(c=>c.id===activeClass);
+  const pNum = cls?.periodNum||1;
+  const days = Object.keys(_demoData).sort();
+  if(!days.length) return null;
+  const tot = days.length;
+  let ab=0, lf=0;
+  days.forEach(dk2=>{
+    const s=_demoData[dk2]?.[name];
+    if(!s)return;
+    if(s.status==='absent')ab++;
+    else if(s.status==='late')lf+=(parseInt(s.minutesLate)||0)/45;
+  });
+  const pct=Math.max(0,Math.min(100,(tot-ab-lf)/tot*100));
+  const gr=pct>=90?'hi':pct>=75?'md':'lo';
+  return {pct,gr};
+}
+
+
+// ══════════════════════════════════════════════════════════
+// CO-TEACHING
+// ══════════════════════════════════════════════════════════
+// Shared classes live at: shared_classes/[sharedId]/
+// sharedId = owner_key + '_' + class_slug
+
+function getSharedId(cls){
+  return (TEACHER_KEY||'unknown')+'_'+cls.id;
+}
+
+function inviteCoteacher(clsId, coteacherKey){
+  const cls = CLASSES.find(c=>c.id===clsId);
+  if(!cls) return;
+  if(!cls.coteachers) cls.coteachers=[];
+  if(!cls.coteacherNames) cls.coteacherNames=[];
+  if(cls.coteachers.includes(coteacherKey)) return;
+  
+  cls.coteachers.push(coteacherKey);
+  const reg = (typeof TEACHER_REGISTRY!=='undefined')?TEACHER_REGISTRY:{};
+  cls.coteacherNames.push(reg[coteacherKey]?.name||coteacherKey);
+  cls.shared = true;
+  cls.sharedId = getSharedId(cls);
+  cls.sharedOwner = TEACHER_KEY||'unknown';
+  
+  // Write shared class manifest to Firebase
+  if(_fbDb){
+    const sharedRef = _fbDb.ref('shared_classes/'+cls.sharedId+'/meta');
+    sharedRef.set({
+      classLabel: cls.label,
+      periodNum: cls.periodNum||null,
+      owner: TEACHER_KEY,
+      coteachers: cls.coteachers,
+      students: cls.students
+    });
+    
+    // Also write invitation to the co-teacher's profile
+    const invRef = _fbDb.ref('teachers/'+coteacherKey+'/invitations/'+cls.sharedId);
+    invRef.set({
+      sharedId: cls.sharedId,
+      owner: TEACHER_KEY,
+      classLabel: cls.label,
+      periodNum: cls.periodNum||null
+    });
+  }
+  
+  scheduleSave();
+  renderRoster();
+  closeMod('modCoteach');
+  showSaveStatus('Co-teacher invited ✓','rgba(100,255,150,.9)');
+}
+
+function removeCoteacher(clsId, coteacherKey){
+  const cls=CLASSES.find(c=>c.id===clsId);if(!cls)return;
+  cls.coteachers=(cls.coteachers||[]).filter(k=>k!==coteacherKey);
+  cls.coteacherNames=(cls.coteacherNames||[]).filter((_,i)=>(cls.coteachers||[])[i]!==coteacherKey);
+  if(!cls.coteachers.length){cls.shared=false;cls.sharedId=null;}
+  scheduleSave();renderRoster();
+}
+
+function openCoteachModal(clsId){
+  const cls=CLASSES.find(c=>c.id===clsId);if(!cls)return;
+  const reg=(typeof TEACHER_REGISTRY!=='undefined')?TEACHER_REGISTRY:{};
+  const myKey=TEACHER_KEY||'unknown';
+  
+  const current=(cls.coteachers||[]).map((k,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--bdr)">
+      <span style="flex:1;font-size:13px;font-weight:700">${(cls.coteacherNames||[])[i]||k}</span>
+      <button onclick="removeCoteacher('${clsId}','${k}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:7px;padding:3px 8px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;cursor:pointer">Remove</button>
+    </div>`).join('');
+
+  const available=Object.entries(reg)
+    .filter(([k])=>k!==myKey&&!(cls.coteachers||[]).includes(k))
+    .map(([k,t])=>`<option value="${k}">${t.name}</option>`).join('');
+
+  const modal=document.getElementById('modCoteach');
+  if(!modal)return;
+  modal.querySelector('#coteachContent').innerHTML=`
+    <div style="font-size:13px;font-weight:900;color:var(--p);margin-bottom:10px">${cls.label}</div>
+    ${current||'<div style="color:var(--sub);font-size:12px;margin-bottom:10px">No co-teachers yet.</div>'}
+    ${available?`
+    <div style="margin-top:12px">
+      <div style="font-size:10px;font-weight:900;color:var(--sub);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Invite a co-teacher</div>
+      <div style="display:flex;gap:8px">
+        <select id="coteachSelect" style="flex:1;border:1.5px solid var(--bdr);border-radius:8px;padding:7px;font-family:'Nunito',sans-serif;font-size:13px;background:var(--sur);color:var(--txt)">
+          <option value="">Select teacher…</option>${available}
+        </select>
+        <button onclick="inviteCoteacher('${clsId}',document.getElementById('coteachSelect').value)" style="background:var(--p);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:800;cursor:pointer">Invite</button>
+      </div>
+    </div>`:'<div style="color:var(--sub);font-size:12px;margin-top:8px">All teachers already added.</div>'}
+  `;
+  modal.dataset.clsId=clsId;
+  openMod('modCoteach');
+}
+
+// Check for class invitations from other teachers on load
+function checkInvitations(){
+  if(!_fbDb) return;
+  const myKey=TEACHER_KEY||'unknown';
+  _fbDb.ref('teachers/'+myKey+'/invitations').once('value', snap=>{
+    const invites=snap.val();
+    if(!invites)return;
+    Object.entries(invites).forEach(([sharedId,inv])=>{
+      // Check if we already have this shared class
+      const alreadyHave=CLASSES.some(c=>c.sharedId===sharedId);
+      if(!alreadyHave){
+        // Add as a linked class that we read from the owner's shared path
+        if(confirm(`${inv.owner} has invited you to co-teach: ${inv.classLabel} (Period ${inv.periodNum||'?'}). Add to your classes?`)){
+          loadSharedClass(sharedId, inv);
+        }
+      }
+    });
+  });
+}
+
+function loadSharedClass(sharedId, inv){
+  if(!_fbDb)return;
+  _fbDb.ref('shared_classes/'+sharedId+'/meta').once('value', snap=>{
+    const meta=snap.val();
+    if(!meta)return;
+    // Add the shared class to local CLASSES
+    const newCls={
+      id:'shared_'+sharedId,
+      label:meta.classLabel+' (Co-taught)',
+      periodNum:meta.periodNum,
+      periodMins:45,
+      color:'#475569',
+      students:meta.students||[],
+      shared:true,
+      sharedId:sharedId,
+      sharedOwner:meta.owner,
+      coteachers:[TEACHER_KEY],
+      readOnly:false
+    };
+    CLASSES.push(newCls);
+    buildCTabs();
+    scheduleSave();
+  });
+}
+
 // ── Friday save reminder ─────────────────────────────────────────────────
 function closeFriday(){document.getElementById('fridayMod').classList.remove('open');}
 function checkFridayPrompt(){
@@ -3987,6 +4217,28 @@ function exportAllCalls(){
   URL.revokeObjectURL(a.href);
 }
 
+
+// ── Auto-submit / auto-save status ───────────────────────────
+let _autoSubmitTimer = null;
+let _undoStack = [];
+
+function showSaveStatus(msg, color){
+  const el=document.getElementById('autoSaveStatus');
+  if(el){el.textContent=msg;el.style.color=color||'rgba(255,255,255,.6)';}
+}
+
+function triggerAutoSubmit(){
+  clearTimeout(_autoSubmitTimer);
+  showSaveStatus('Saving…','rgba(255,255,255,.9)');
+  _autoSubmitTimer = setTimeout(()=>{
+    showSaveStatus('Saved ✓','rgba(255,255,255,.6)');
+    syncToFirebase();
+  }, 20000); // 20 seconds after last change
+}
+
+// Override scheduleSave to also trigger autoSubmit status
+const _origScheduleSave = scheduleSave;
+
 if(window.TEACHER_NAME){localStorage.setItem('petrides_teacher_name',window.TEACHER_NAME);const _th=document.getElementById('topTitle');if(_th)_th.textContent='Petrides · '+window.TEACHER_NAME;}
 // ══════════════════════════════════════════════════════════
 // INIT
@@ -4021,7 +4273,8 @@ setTimeout(buildPsSelector,500);
 // Firebase calls checkInitWizard() which starts startBellPoller() once data loads.
 // Safety fallback: if Firebase doesn't connect in 4 seconds, start locally.
 setTimeout(()=>{
-  if(!_fbEnabled){startBellPoller();checkInitWizard();}
+  if(!_fbEnabled){startBellPoller();checkInitWizard();
+  setTimeout(checkInvitations, 3000);}
   else{updateCountdownBar();updateBbar();}
 },4000);
 </script>
@@ -4170,6 +4423,17 @@ setTimeout(()=>{
   <div class="mod-acts" style="flex-shrink:0">
     <button class="mbtn mb-cancel" onclick="closeMod('modSubSheet')">Cancel</button>
     <button class="mbtn mb-ok" onclick="printSubSheet()">🖨️ Open & Print</button>
+  </div>
+</div>
+</div>
+<!-- CO-TEACH MODAL -->
+<div class="mod-ov" id="modCoteach" onclick="if(event.target===this)closeMod('modCoteach')">
+<div class="modal" style="max-width:420px">
+  <div class="mod-tit">👥 Co-Teach This Class</div>
+  <div class="mod-sub" style="margin-bottom:12px">Share this class with a colleague. Both of you can mark attendance and see changes in real time.</div>
+  <div id="coteachContent"></div>
+  <div class="mod-acts" style="margin-top:14px">
+    <button class="mbtn mb-cancel" onclick="closeMod('modCoteach')">Close</button>
   </div>
 </div>
 </div>
