@@ -690,6 +690,42 @@ a[href*="netlify"]:not(.nav-link){
       <div class="st-note" id="nameNote"></div>
     </div>
 
+        <!-- ADMIN: Global Dates (jacobsen only) -->
+    <div id="adminGlobalSec" style="display:none">
+      <div class="st-section" style="border:2px solid #003DA5;border-radius:13px;padding:14px;margin-bottom:8px">
+        <div class="st-tit" style="color:#003DA5">🔧 Admin — School Calendar & Marking Periods</div>
+        <div class="st-note" style="margin-bottom:12px">Set once here — all 37 teachers get these dates automatically. Leave blank to not override.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><div style="font-size:10px;font-weight:800;color:var(--sub);margin-bottom:4px;text-transform:uppercase">S1 Start</div>
+            <input type="date" id="gcS1Start" class="st-inp"></div>
+          <div><div style="font-size:10px;font-weight:800;color:var(--sub);margin-bottom:4px;text-transform:uppercase">S1 End</div>
+            <input type="date" id="gcS1End" class="st-inp"></div>
+          <div><div style="font-size:10px;font-weight:800;color:var(--sub);margin-bottom:4px;text-transform:uppercase">S2 Start</div>
+            <input type="date" id="gcS2Start" class="st-inp"></div>
+          <div><div style="font-size:10px;font-weight:800;color:var(--sub);margin-bottom:4px;text-transform:uppercase">S2 End</div>
+            <input type="date" id="gcS2End" class="st-inp"></div>
+          <div><div style="font-size:10px;font-weight:800;color:var(--sub);margin-bottom:4px;text-transform:uppercase">MP1 Start</div>
+            <input type="date" id="gcMP1S" class="st-inp"></div>
+          <div><div style="font-size:10px;font-weight:800;color:var(--sub);margin-bottom:4px;text-transform:uppercase">MP1 End</div>
+            <input type="date" id="gcMP1E" class="st-inp"></div>
+          <div><div style="font-size:10px;font-weight:800;color:var(--sub);margin-bottom:4px;text-transform:uppercase">MP2 Start</div>
+            <input type="date" id="gcMP2S" class="st-inp"></div>
+          <div><div style="font-size:10px;font-weight:800;color:var(--sub);margin-bottom:4px;text-transform:uppercase">MP2 End</div>
+            <input type="date" id="gcMP2E" class="st-inp"></div>
+          <div><div style="font-size:10px;font-weight:800;color:var(--sub);margin-bottom:4px;text-transform:uppercase">MP3 Start</div>
+            <input type="date" id="gcMP3S" class="st-inp"></div>
+          <div><div style="font-size:10px;font-weight:800;color:var(--sub);margin-bottom:4px;text-transform:uppercase">MP3 End</div>
+            <input type="date" id="gcMP3E" class="st-inp"></div>
+          <div><div style="font-size:10px;font-weight:800;color:var(--sub);margin-bottom:4px;text-transform:uppercase">MP4 Start</div>
+            <input type="date" id="gcMP4S" class="st-inp"></div>
+          <div><div style="font-size:10px;font-weight:800;color:var(--sub);margin-bottom:4px;text-transform:uppercase">MP4 End</div>
+            <input type="date" id="gcMP4E" class="st-inp"></div>
+        </div>
+        <button class="st-save" style="margin-top:10px;width:100%" onclick="saveGlobalConfig()">💾 Save & Push to All Teachers</button>
+        <div id="gcStatus" style="font-size:12px;font-weight:700;min-height:18px;margin-top:6px"></div>
+      </div>
+    </div>
+
     <div id="themeSettingsSec"></div>
     <div id="fbSettingsSec"></div>
     <div id="bellSettingsSec"></div>
@@ -992,7 +1028,8 @@ setTimeout(buildPsSelector,500);
 // Safety fallback: if Firebase doesn't connect in 4 seconds, start locally.
 setTimeout(()=>{
   if(!_fbEnabled){startBellPoller();checkInitWizard();
-  setTimeout(checkInvitations, 3000);}
+  setTimeout(checkInvitations, 3000);
+  loadGlobalConfig();}
   else{updateCountdownBar();updateBbar();}
 },4000);
     }catch(e){ setSvLabel('error'); }
@@ -2022,6 +2059,23 @@ function initSettingsUI(){if(document.getElementById('psSelectorRoot')&&activeVi
   if(semConfig.startDate) document.getElementById('semStart').value=dkey(semConfig.startDate);
   if(semConfig.endDate) document.getElementById('semEnd').value=dkey(semConfig.endDate);
   const ts=document.getElementById('themeSettingsSec');if(ts)ts.innerHTML=renderThemeSettings();
+  // Show admin section only for jacobsen, and populate current global values
+  const adminSec=document.getElementById('adminGlobalSec');
+  if(adminSec){
+    adminSec.style.display=(TEACHER_KEY==='jacobsen')?'block':'none';
+    if(TEACHER_KEY==='jacobsen' && _fbDb){
+      _fbDb.ref('global/semConfig').once('value',snap=>{
+        const g=snap.val()||{};
+        const flds={gcS1Start:'s1Start',gcS1End:'s1End',gcS2Start:'s2Start',gcS2End:'s2End',
+          gcMP1S:'mp1Start',gcMP1E:'mp1End',gcMP2S:'mp2Start',gcMP2E:'mp2End',
+          gcMP3S:'mp3Start',gcMP3E:'mp3End',gcMP4S:'mp4Start',gcMP4E:'mp4End'};
+        Object.entries(flds).forEach(([elId,key])=>{
+          const el=document.getElementById(elId);
+          if(el && g[key]) el.value=g[key];
+        });
+      });
+    }
+  }
   const _tni=document.getElementById('teacherNameInp');if(_tni)_tni.value=localStorage.getItem('petrides_teacher_name')||'';
   // Auto-lock buttons
   buildAutoLockBtns();
@@ -2584,12 +2638,46 @@ function renderBellSettings(){
 }
 function setBellVolume(v){bellSettings.volume=parseInt(v);saveBellSettings();}
 function setBellRings(n){bellSettings.rings=n;saveBellSettings();const ts=document.getElementById('themeSettingsSec');if(ts)ts.innerHTML=renderThemeSettings();
+  // Show admin section only for jacobsen, and populate current global values
+  const adminSec=document.getElementById('adminGlobalSec');
+  if(adminSec){
+    adminSec.style.display=(TEACHER_KEY==='jacobsen')?'block':'none';
+    if(TEACHER_KEY==='jacobsen' && _fbDb){
+      _fbDb.ref('global/semConfig').once('value',snap=>{
+        const g=snap.val()||{};
+        const flds={gcS1Start:'s1Start',gcS1End:'s1End',gcS2Start:'s2Start',gcS2End:'s2End',
+          gcMP1S:'mp1Start',gcMP1E:'mp1End',gcMP2S:'mp2Start',gcMP2E:'mp2End',
+          gcMP3S:'mp3Start',gcMP3E:'mp3End',gcMP4S:'mp4Start',gcMP4E:'mp4End'};
+        Object.entries(flds).forEach(([elId,key])=>{
+          const el=document.getElementById(elId);
+          if(el && g[key]) el.value=g[key];
+        });
+      });
+    }
+  }
   const _tni=document.getElementById('teacherNameInp');if(_tni)_tni.value=localStorage.getItem('petrides_teacher_name')||'';
   // Auto-lock buttons
   buildAutoLockBtns();
   const fs=document.getElementById('fbSettingsSec');if(fs)fs.innerHTML=renderFBSettings();
   const bs=document.getElementById('bellSettingsSec');if(bs)bs.innerHTML=renderBellSettings();}
 function setBellGap(ms){bellSettings.ringGap=ms;saveBellSettings();const ts=document.getElementById('themeSettingsSec');if(ts)ts.innerHTML=renderThemeSettings();
+  // Show admin section only for jacobsen, and populate current global values
+  const adminSec=document.getElementById('adminGlobalSec');
+  if(adminSec){
+    adminSec.style.display=(TEACHER_KEY==='jacobsen')?'block':'none';
+    if(TEACHER_KEY==='jacobsen' && _fbDb){
+      _fbDb.ref('global/semConfig').once('value',snap=>{
+        const g=snap.val()||{};
+        const flds={gcS1Start:'s1Start',gcS1End:'s1End',gcS2Start:'s2Start',gcS2End:'s2End',
+          gcMP1S:'mp1Start',gcMP1E:'mp1End',gcMP2S:'mp2Start',gcMP2E:'mp2End',
+          gcMP3S:'mp3Start',gcMP3E:'mp3End',gcMP4S:'mp4Start',gcMP4E:'mp4End'};
+        Object.entries(flds).forEach(([elId,key])=>{
+          const el=document.getElementById(elId);
+          if(el && g[key]) el.value=g[key];
+        });
+      });
+    }
+  }
   const _tni=document.getElementById('teacherNameInp');if(_tni)_tni.value=localStorage.getItem('petrides_teacher_name')||'';
   // Auto-lock buttons
   buildAutoLockBtns();
@@ -3487,6 +3575,7 @@ function loadFromFirebase(){
       // No Firebase data yet — check if wizard needed
       checkInitWizard();
   setTimeout(checkInvitations, 3000);
+  loadGlobalConfig();
       return;
     }
     const fbTime=data.lastSaved||0;
@@ -3516,10 +3605,12 @@ function loadFromFirebase(){
     }
     checkInitWizard();
   setTimeout(checkInvitations, 3000);
+  loadGlobalConfig();
   },err=>{
     console.warn('Firebase read failed:',err.message);
     checkInitWizard();
   setTimeout(checkInvitations, 3000);
+  loadGlobalConfig();
   });
 }
 
@@ -4062,6 +4153,58 @@ function loadSharedClass(sharedId, inv){
   });
 }
 
+
+// ── Global Config (semester/MP dates set by admin) ────────────
+function loadGlobalConfig(){
+  if(!_fbDb) return;
+  _fbDb.ref('global/semConfig').on('value', snap=>{
+    const g = snap.val();
+    if(!g) return;
+    // Apply global semester dates to all teachers
+    if(g.s1Start) semConfig.startDate  = new Date(g.s1Start+'T00:00:00');
+    if(g.s1End)   semConfig.endDate    = new Date(g.s1End+'T00:00:00');
+    if(g.s2Start) semConfig.sem2Start  = new Date(g.s2Start+'T00:00:00');
+    if(g.s2End)   semConfig.sem2End    = new Date(g.s2End+'T00:00:00');
+    if(g.mp1Start) semConfig.mp1Start  = new Date(g.mp1Start+'T00:00:00');
+    if(g.mp1End)   semConfig.mp1End    = new Date(g.mp1End+'T00:00:00');
+    if(g.mp2Start) semConfig.mp2Start  = new Date(g.mp2Start+'T00:00:00');
+    if(g.mp2End)   semConfig.mp2End    = new Date(g.mp2End+'T00:00:00');
+    if(g.mp3Start) semConfig.mp3Start  = new Date(g.mp3Start+'T00:00:00');
+    if(g.mp3End)   semConfig.mp3End    = new Date(g.mp3End+'T00:00:00');
+    if(g.mp4Start) semConfig.mp4Start  = new Date(g.mp4Start+'T00:00:00');
+    if(g.mp4End)   semConfig.mp4End    = new Date(g.mp4End+'T00:00:00');
+    // Refresh countdown display
+    updateCountdownBar();
+    updateBBar();
+  });
+}
+
+// Admin only: write global config to Firebase
+function saveGlobalConfig(){
+  if(!_fbDb){ alert('Not connected to Firebase.'); return; }
+  const get = id => document.getElementById(id)?.value||'';
+  const cfg = {
+    s1Start:  get('gcS1Start'), s1End:    get('gcS1End'),
+    s2Start:  get('gcS2Start'), s2End:    get('gcS2End'),
+    mp1Start: get('gcMP1S'),    mp1End:   get('gcMP1E'),
+    mp2Start: get('gcMP2S'),    mp2End:   get('gcMP2E'),
+    mp3Start: get('gcMP3S'),    mp3End:   get('gcMP3E'),
+    mp4Start: get('gcMP4S'),    mp4End:   get('gcMP4E'),
+    updatedBy: TEACHER_KEY||'unknown',
+    updatedAt: new Date().toISOString()
+  };
+  // Remove empty strings
+  Object.keys(cfg).forEach(k=>{ if(!cfg[k]) delete cfg[k]; });
+  _fbDb.ref('global/semConfig').set(cfg, err=>{
+    if(err){ alert('Save failed: '+err.message); return; }
+    const el=document.getElementById('gcStatus');
+    if(el){ el.textContent='✓ Saved — all teachers updated automatically'; el.style.color='#059669'; }
+    setTimeout(()=>{ const e=document.getElementById('gcStatus');if(e)e.textContent=''; },4000);
+  });
+}
+
+function fmtD(d){ return d?d.toISOString().slice(0,10):''; }
+
 // ── Friday save reminder ─────────────────────────────────────────────────
 function closeFriday(){document.getElementById('fridayMod').classList.remove('open');}
 function checkFridayPrompt(){
@@ -4255,7 +4398,8 @@ setTimeout(buildPsSelector,500);
 // Safety fallback: if Firebase doesn't connect in 4 seconds, start locally.
 setTimeout(()=>{
   if(!_fbEnabled){startBellPoller();checkInitWizard();
-  setTimeout(checkInvitations, 3000);}
+  setTimeout(checkInvitations, 3000);
+  loadGlobalConfig();}
   else{updateCountdownBar();updateBbar();}
 },4000);
 </script>
