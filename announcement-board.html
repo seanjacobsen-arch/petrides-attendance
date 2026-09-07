@@ -2,710 +2,587 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Board — Announcements</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Poppins:wght@400;600;700&family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Oswald:wght@500;700&family=Merriweather:wght@700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Board — Petrides</title>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Inter:wght@400;600;700&family=Space+Mono:wght@700&family=Poppins:wght@600;700&family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Oswald:wght@500;700&family=Merriweather:wght@700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --navy: #0B1220;
-    --panel: #131B2E;
-    --panel-2: #1B2540;
-    --line: #263155;
-    --amber: #FFB84D;
-    --text: #EDEFF5;
-    --muted: #8894AB;
-    --danger: #F87171;
-    --good: #4ADE80;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;background:var(--navy);color:var(--text);font-family:'Inter',sans-serif;height:100%;}
-  #app{min-height:100vh;display:flex;flex-direction:column;}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--p:#003DA5;--bg:#0d1117;--sur:#161b22;--bdr:#30363d;--txt:#e6edf3;--sub:#8b949e;--amb:#FFB84D}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column}
 
-  /* ---------- top nav ---------- */
-  .topbar{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:18px 28px;border-bottom:1px solid var(--line);
-    background:var(--panel);
-  }
-  .brand{display:flex;align-items:baseline;gap:10px;}
-  .brand .mark{font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-size:26px;letter-spacing:0.5px;color:var(--amber);}
-  .brand .sub{font-family:'Space Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:2px;}
-  .tabs{display:flex;gap:6px;background:var(--panel-2);padding:4px;border-radius:10px;}
-  .tab-btn{
-    border:none;background:transparent;color:var(--muted);font-family:'Inter',sans-serif;
-    font-weight:600;font-size:14px;padding:9px 18px;border-radius:8px;cursor:pointer;transition:background .15s,color .15s;
-  }
-  .tab-btn.active{background:var(--amber);color:#1a1400;}
+/* TOP BAR */
+.topbar{background:var(--sur);border-bottom:1px solid var(--bdr);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.brand{font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-size:22px;color:var(--amb)}
+.brand span{color:var(--sub);font-size:13px;font-family:'Inter',sans-serif;font-weight:600;margin-left:10px}
+.tabs{display:flex;gap:4px;background:#0d1117;padding:3px;border-radius:9px}
+.tab{border:none;background:transparent;color:var(--sub);padding:7px 16px;border-radius:7px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+.tab.on{background:var(--amb);color:#1a1400}
 
-  /* ---------- editor layout ---------- */
-  .editor-wrap{flex:1;display:grid;grid-template-columns: 420px 1fr;gap:0;}
-  @media (max-width: 900px){ .editor-wrap{grid-template-columns:1fr;} }
-  .panel{padding:26px;overflow-y:auto;}
-  .panel.form{border-right:1px solid var(--line);background:var(--panel);max-height:calc(100vh - 74px);}
-  .field{margin-bottom:20px;}
-  .field label{display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
-  input[type=text],textarea,select,input[type=datetime-local]{
-    width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
-    padding:11px 12px;border-radius:8px;font-family:'Inter',sans-serif;font-size:14px;
-  }
-  textarea{resize:vertical;min-height:70px;}
-  input:focus,textarea:focus,select:focus{outline:2px solid var(--amber);outline-offset:1px;}
+/* LAYOUT */
+.workspace{flex:1;display:grid;grid-template-columns:380px 1fr;min-height:0}
+.panel{padding:20px;overflow-y:auto;max-height:calc(100vh - 57px)}
+.panel.form{background:var(--sur);border-right:1px solid var(--bdr)}
+.panel.right{background:var(--bg);display:flex;flex-direction:column;align-items:center;gap:16px;padding:20px}
 
-  .swatch-row{display:flex;flex-wrap:wrap;gap:8px;}
-  .swatch{
-    width:44px;height:44px;border-radius:8px;cursor:pointer;border:2px solid transparent;
-    position:relative;flex-shrink:0;
-  }
-  .swatch.selected{border-color:var(--amber);}
-  .swatch.custom-color-wrap{display:flex;align-items:center;justify-content:center;background:var(--panel-2);border:1px solid var(--line);}
-  .swatch input[type=color]{width:30px;height:30px;border:none;background:none;cursor:pointer;padding:0;}
+/* FORM ELEMENTS */
+.field{margin-bottom:16px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
+input[type=text],textarea,select,input[type=range]{width:100%;background:#0d1117;border:1px solid var(--bdr);color:var(--txt);padding:9px 11px;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px}
+input[type=range]{padding:2px 0;accent-color:var(--amb)}
+textarea{resize:vertical;min-height:70px;line-height:1.5}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--amb);outline-offset:1px}
+.readout{font-family:'Space Mono',monospace;color:var(--amb);font-size:12px;margin-left:6px}
 
-  .seg{display:flex;gap:6px;}
-  .seg button{
-    flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
-    padding:9px 6px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;
-  }
-  .seg button.active{background:var(--amber);color:#1a1400;border-color:var(--amber);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
-  .pos-grid{
-    display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:150px;
-    aspect-ratio:1;padding:10px;background:var(--panel-2);border:1px solid var(--line);border-radius:10px;
-  }
-  .pos-grid button{
-    background:rgba(255,255,255,0.08);border:1px solid transparent;border-radius:6px;cursor:pointer;
-    position:relative;
-  }
-  .pos-grid button::after{
-    content:'';position:absolute;top:50%;left:50%;width:7px;height:7px;border-radius:50%;
-    background:var(--muted);transform:translate(-50%,-50%);
-  }
-  .pos-grid button.active{background:rgba(255,184,77,0.18);border-color:var(--amber);}
-  .pos-grid button.active::after{background:var(--amber);width:9px;height:9px;}
+/* SWATCH GRID */
+.swatches{display:flex;flex-wrap:wrap;gap:6px}
+.sw{width:38px;height:38px;border-radius:7px;cursor:pointer;border:2px solid transparent;flex-shrink:0;transition:border-color .1s}
+.sw.sel{border-color:var(--amb)!important}
+.sw.custom{display:flex;align-items:center;justify-content:center;background:#161b22;border:1px solid var(--bdr)}
+.sw input[type=color]{width:26px;height:26px;border:none;background:none;cursor:pointer;padding:0}
 
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-  .hint{font-size:12px;color:var(--muted);margin-top:6px;}
+/* GRADIENT BUILDER */
+.grad-row{display:flex;align-items:center;gap:8px;margin-top:8px}
+.grad-preview{flex:1;height:32px;border-radius:7px;border:1px solid var(--bdr)}
+.grad-dir{display:flex;gap:4px;flex-wrap:wrap}
+.dir-btn{background:#0d1117;border:1px solid var(--bdr);color:var(--sub);padding:5px 9px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap}
+.dir-btn.sel{background:var(--amb);color:#1a1400;border-color:var(--amb)}
 
-  input[type=range]{width:100%;accent-color:var(--amber);}
-  .size-readout{font-family:'Space Mono',monospace;color:var(--amber);font-size:13px;}
+/* POSITION GRID */
+.pos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;width:120px}
+.pos-cell{height:34px;background:#0d1117;border:1px solid var(--bdr);border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .1s}
+.pos-cell.sel{background:var(--amb);border-color:var(--amb)}
 
-  .upload-btn{
-    display:flex;align-items:center;justify-content:center;gap:8px;
-    border:1.5px dashed var(--line);border-radius:8px;padding:14px;cursor:pointer;
-    color:var(--muted);font-size:13px;font-weight:600;background:var(--panel-2);
-  }
-  .upload-btn:hover{border-color:var(--amber);color:var(--amber);}
-  .img-preview-strip{display:flex;align-items:center;gap:10px;margin-top:10px;}
-  .img-preview-strip img{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--line);}
-  .img-preview-strip button{background:none;border:none;color:var(--danger);font-size:12px;cursor:pointer;font-weight:700;}
+/* UPLOAD BUTTON */
+.upbtn{display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px dashed var(--bdr);border-radius:8px;padding:11px;cursor:pointer;color:var(--sub);font-size:13px;font-weight:600;background:#0d1117}
+.upbtn:hover{border-color:var(--amb);color:var(--amb)}
 
-  .primary-btn{
-    width:100%;background:var(--amber);color:#1a1400;border:none;padding:14px;border-radius:9px;
-    font-weight:800;font-size:15px;cursor:pointer;margin-top:6px;letter-spacing:0.3px;
-  }
-  .primary-btn:disabled{opacity:0.4;cursor:not-allowed;}
-  .primary-btn:hover:not(:disabled){background:#ffc670;}
+.img-strip{display:flex;align-items:center;gap:8px;margin-top:8px}
+.img-strip img{width:50px;height:50px;object-fit:cover;border-radius:6px;border:1px solid var(--bdr)}
+.img-strip button{background:none;border:1px solid var(--bdr);color:#f87171;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700}
 
-  /* ---------- preview + manage ---------- */
-  .panel.preview-side{background:var(--navy);display:flex;flex-direction:column;gap:22px;}
-  .preview-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
-  .preview-frame{
-    width:100%;aspect-ratio:9/16;max-width:340px;border-radius:14px;border:3px solid var(--line);
-    overflow:hidden;position:relative;box-shadow:0 20px 50px -20px rgba(0,0,0,0.6);
-  }
-  .preview-frame .content{
-    width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:8%;text-align:center;position:relative;
-  }
-  .preview-frame img.att{max-width:70%;max-height:38%;object-fit:contain;border-radius:6px;margin-bottom:14px;}
+/* POST BUTTON */
+.postbtn{width:100%;background:var(--amb);color:#1a1400;border:none;padding:13px;border-radius:9px;font-weight:900;font-size:15px;cursor:pointer;margin-top:8px}
+.postbtn:disabled{opacity:.4;cursor:not-allowed}
+.postbtn:hover:not(:disabled){background:#ffc670}
+.status-msg{font-size:12px;color:var(--sub);margin-top:8px;min-height:16px}
+.status-msg.ok{color:#4ade80}
+.status-msg.err{color:#f87171}
 
-  .manage-list{display:flex;flex-direction:column;gap:10px;margin-top:4px;}
-  .manage-card{
-    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;
-    display:flex;align-items:center;gap:14px;
-  }
-  .swatch-mini{width:34px;height:34px;border-radius:6px;flex-shrink:0;background-size:cover;background-position:center;}
-  .manage-info{flex:1;min-width:0;}
-  .manage-info .t{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .manage-info .m{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .manage-status{font-family:'Space Mono',monospace;font-size:11px;padding:3px 8px;border-radius:5px;flex-shrink:0;}
-  .manage-status.live{background:rgba(74,222,128,0.15);color:var(--good);}
-  .manage-status.expired{background:rgba(248,113,113,0.15);color:var(--danger);}
-  .del-btn{background:none;border:1px solid var(--line);color:var(--muted);border-radius:7px;padding:8px 12px;cursor:pointer;font-size:12px;flex-shrink:0;}
-  .del-btn:hover{border-color:var(--danger);color:var(--danger);}
-  .empty-note{color:var(--muted);font-size:13px;padding:20px 0;}
+/* PREVIEW (portrait: 9:16) */
+.preview-wrap{position:relative}
+.preview-label{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.preview-frame{width:240px;border-radius:12px;border:3px solid var(--bdr);overflow:hidden;box-shadow:0 20px 50px -15px rgba(0,0,0,.7);aspect-ratio:9/16;position:relative}
+.slide-inner{width:100%;height:100%;position:relative;overflow:hidden}
+.slide-inner .txt-block{position:absolute;padding:8%;display:flex;flex-direction:column;gap:6px}
+.slide-inner img.att{position:absolute;object-fit:contain}
 
-  /* ---------- board display ---------- */
-  #board-view{
-    position:fixed;inset:0;background:#000;display:none;z-index:999;
-  }
-  #board-view.active{display:block;}
-  .board-slide{
-    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    padding:6vh 8vw;text-align:center;opacity:0;transition:opacity 0.9s ease-in-out;
-  }
-  .board-slide.show{opacity:1;}
-  .board-slide img.att{max-width:60%;max-height:42vh;object-fit:contain;border-radius:14px;margin-bottom:4vh;box-shadow:0 30px 60px -20px rgba(0,0,0,0.5);}
-  .board-slide .msg{white-space:pre-wrap;line-height:1.25;max-width:100%;}
-  .board-empty{
-    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;
-    color:#4b5468;background:#050810;
-  }
-  .board-empty .mk{font-family:'Big Shoulders Display',sans-serif;font-weight:900;font-size:min(9vw,60px);letter-spacing:1px;color:#7b869c;}
-  .exit-board{
-    position:fixed;top:18px;right:18px;z-index:1001;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);
-    color:#fff;padding:8px 14px;border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;opacity:0.35;
-  }
-  .exit-board:hover{opacity:1;}
-  .board-progress{position:fixed;bottom:0;left:0;height:4px;background:var(--amber);z-index:1001;transition:width linear;}
+/* MANAGE */
+.manage-list{display:flex;flex-direction:column;gap:10px}
+.mcard{background:var(--sur);border:1px solid var(--bdr);border-radius:10px;padding:13px 16px;display:flex;align-items:center;gap:12px}
+.mcard-swatch{width:40px;height:40px;border-radius:7px;flex-shrink:0;background-size:cover;background-position:center}
+.mcard-info{flex:1;min-width:0}
+.mcard-info .t{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mcard-info .s{font-size:11px;color:var(--sub);margin-top:2px}
+.badge{font-size:10px;font-family:'Space Mono',monospace;padding:3px 7px;border-radius:5px;flex-shrink:0}
+.badge.live{background:rgba(74,222,128,.15);color:#4ade80}
+.badge.exp{background:rgba(248,113,113,.15);color:#f87171}
+.delbtn{background:none;border:1px solid var(--bdr);color:var(--sub);border-radius:7px;padding:7px 10px;cursor:pointer;font-size:12px;flex-shrink:0}
+.delbtn:hover{border-color:#f87171;color:#f87171}
+.empty{color:var(--sub);font-size:13px;padding:24px 0}
+
+/* FULLSCREEN KIOSK — PORTRAIT */
+#kiosk{position:fixed;inset:0;background:#000;display:none;z-index:9999}
+#kiosk.on{display:flex;align-items:center;justify-content:center}
+#kiosk-inner{position:relative;height:100vh;aspect-ratio:9/16;max-width:100vw;overflow:hidden}
+.ks-slide{position:absolute;inset:0;opacity:0;transition:opacity .9s ease;overflow:hidden}
+.ks-slide.show{opacity:1}
+.ks-slide .txt-block{position:absolute;display:flex;flex-direction:column;padding:7%;gap:1vh}
+.ks-slide img.att{position:absolute;object-fit:contain}
+.ks-progress{position:fixed;bottom:0;left:0;height:5px;background:var(--amb);z-index:10001}
+.ks-exit{position:fixed;top:14px;right:14px;z-index:10002;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;padding:7px 13px;border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;opacity:.4}
+.ks-exit:hover{opacity:1}
+.ks-empty{display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#333;font-family:'Big Shoulders Display',sans-serif;font-size:min(8vw,48px);font-weight:900;letter-spacing:2px}
 </style>
 </head>
 <body>
-<div id="app">
 
-  <div class="topbar">
-    <div class="brand">
-      <span class="mark">THE BOARD</span>
-      <span class="sub">SCHOOL ANNOUNCEMENTS</span>
-    </div>
-    <div class="tabs">
-      <button class="tab-btn active" id="tab-post" onclick="switchTab('post')">Post</button>
-      <button class="tab-btn" id="tab-manage" onclick="switchTab('manage')">Manage</button>
-      <button class="tab-btn" id="tab-board" onclick="launchBoard()">Display Board ▸</button>
-    </div>
+<div class="topbar">
+  <div class="brand">THE BOARD <span>Petrides Announcements</span></div>
+  <div class="tabs">
+    <button class="tab on" onclick="showTab('post')">Post</button>
+    <button class="tab" onclick="showTab('manage')">Manage</button>
+    <button class="tab" onclick="launchKiosk()">▶ Display Board</button>
   </div>
-
-  <!-- POST TAB -->
-  <div id="view-post" class="editor-wrap">
-    <div class="panel form">
-
-      <div class="field">
-        <label>Title</label>
-        <input type="text" id="f-title" maxlength="60" placeholder="e.g. Pep Rally Friday">
-      </div>
-
-      <div class="field">
-        <label>Message</label>
-        <textarea id="f-message" maxlength="280" placeholder="Details students should see..."></textarea>
-      </div>
-
-      <div class="field">
-        <label>Background</label>
-        <div class="swatch-row" id="bg-swatches"></div>
-        <div class="hint" id="bg-image-hint" style="display:none;">Custom image set as background.</div>
-        <label class="upload-btn" style="margin-top:10px;">
-          📷 Upload background image
-          <input type="file" accept="image/*" id="f-bg-upload" style="display:none;">
-        </label>
-      </div>
-
-      <div class="field">
-        <label>Font</label>
-        <select id="f-font">
-          <option value="Inter" style="font-family:Inter">Inter — clean & modern</option>
-          <option value="Poppins" style="font-family:Poppins">Poppins — friendly & rounded</option>
-          <option value="'Big Shoulders Display'" selected>Big Shoulders — bold headline</option>
-          <option value="Oswald" style="font-family:Oswald">Oswald — tall & sharp</option>
-          <option value="'Bebas Neue'">Bebas Neue — condensed poster</option>
-          <option value="'Playfair Display'">Playfair Display — elegant serif</option>
-          <option value="Merriweather">Merriweather — classic serif</option>
-          <option value="'Space Mono'">Space Mono — departure-board mono</option>
-          <option value="Caveat">Caveat — handwritten</option>
-        </select>
-      </div>
-
-      <div class="field">
-        <label>Text color</label>
-        <div class="swatch-row" id="color-swatches"></div>
-      </div>
-
-      <div class="field">
-        <label>Text position <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">— like placing a caption on a photo</span></label>
-        <div class="pos-grid" id="pos-grid">
-          <button data-h="flex-start" data-v="flex-start"></button>
-          <button data-h="center" data-v="flex-start"></button>
-          <button data-h="flex-end" data-v="flex-start"></button>
-          <button data-h="flex-start" data-v="center"></button>
-          <button data-h="center" data-v="center" class="active"></button>
-          <button data-h="flex-end" data-v="center"></button>
-          <button data-h="flex-start" data-v="flex-end"></button>
-          <button data-h="center" data-v="flex-end"></button>
-          <button data-h="flex-end" data-v="flex-end"></button>
-        </div>
-      </div>
-
-      <div class="field">
-        <label>Text size — <span class="size-readout" id="size-readout">56px</span></label>
-        <input type="range" id="f-size" min="24" max="140" value="56">
-      </div>
-
-      <div class="field">
-        <label>Attach a picture (shown with the announcement)</label>
-        <label class="upload-btn">
-          🖼️ Upload image
-          <input type="file" accept="image/*" id="f-img-upload" style="display:none;">
-        </label>
-        <div class="img-preview-strip" id="img-preview-strip" style="display:none;"></div>
-      </div>
-
-      <div class="field">
-        <label>Take it down after</label>
-        <select id="f-duration">
-          <option value="1h">1 hour</option>
-          <option value="3h">3 hours</option>
-          <option value="eod">End of today</option>
-          <option value="1d" selected>1 day</option>
-          <option value="3d">3 days</option>
-          <option value="7d">1 week</option>
-          <option value="custom">Custom date &amp; time...</option>
-          <option value="never">No expiration</option>
-        </select>
-        <div class="row2" id="f-custom-wrap" style="display:none;margin-top:8px;">
-          <input type="date" id="f-custom-date-part">
-          <input type="time" id="f-custom-time-part">
-        </div>
-      </div>
-
-      <button class="primary-btn" id="post-btn" onclick="postAnnouncement()">Post to the Board</button>
-      <div class="hint" id="post-status"></div>
-    </div>
-
-    <div class="panel preview-side">
-      <div class="preview-label">Live preview</div>
-      <div class="preview-frame" id="preview-frame">
-        <div class="content" id="preview-content"></div>
-      </div>
-      <div class="hint">This is roughly how it will look on the standing display.</div>
-    </div>
-  </div>
-
-  <!-- MANAGE TAB -->
-  <div id="view-manage" class="editor-wrap" style="display:none;grid-template-columns:1fr;">
-    <div class="panel" style="max-width:820px;margin:0 auto;width:100%;">
-      <div class="preview-label" style="margin-bottom:14px;">All announcements</div>
-      <div class="manage-list" id="manage-list"></div>
-    </div>
-  </div>
-
 </div>
 
-<!-- BOARD DISPLAY (fullscreen kiosk) -->
-<div id="board-view">
-  <button class="exit-board" onclick="exitBoard()">Exit board mode (Esc)</button>
-  <div id="board-slides"></div>
-  <div class="board-progress" id="board-progress"></div>
+<!-- POST TAB -->
+<div id="tab-post" class="workspace">
+  <div class="panel form">
+
+    <div class="field">
+      <label>Title</label>
+      <input type="text" id="fTitle" maxlength="80" placeholder="e.g. Pep Rally this Friday!">
+    </div>
+    <div class="field">
+      <label>Message</label>
+      <textarea id="fMsg" maxlength="300" placeholder="Details..."></textarea>
+    </div>
+
+    <!-- BACKGROUND -->
+    <div class="field">
+      <label>Background</label>
+      <div class="swatches" id="bgSwatches"></div>
+      <div style="margin-top:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px">Custom gradient</div>
+        <div class="grad-dir" id="gradDir"></div>
+        <div class="grad-row">
+          <input type="color" id="gc1" value="#003DA5" style="width:40px;height:34px;border:1px solid var(--bdr);border-radius:7px;cursor:pointer;padding:1px">
+          <div class="grad-preview" id="gradPreview"></div>
+          <input type="color" id="gc2" value="#0d1117" style="width:40px;height:34px;border:1px solid var(--bdr);border-radius:7px;cursor:pointer;padding:1px">
+        </div>
+        <button onclick="applyCustomGrad()" style="margin-top:6px;background:#0d1117;border:1px solid var(--bdr);color:var(--amb);padding:6px 12px;border-radius:7px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer;width:100%">Apply this gradient</button>
+      </div>
+      <label class="upbtn" style="margin-top:10px">
+        📷 Upload background image
+        <input type="file" accept="image/*" id="fBgImg" style="display:none">
+      </label>
+    </div>
+
+    <!-- FONT + COLOR -->
+    <div class="row2">
+      <div class="field">
+        <label>Font</label>
+        <select id="fFont">
+          <option value="Inter">Inter</option>
+          <option value="Poppins">Poppins</option>
+          <option value="'Big Shoulders Display'" selected>Big Shoulders</option>
+          <option value="Oswald">Oswald</option>
+          <option value="'Bebas Neue'">Bebas Neue</option>
+          <option value="'Playfair Display'">Playfair Display</option>
+          <option value="Merriweather">Merriweather</option>
+          <option value="'Space Mono'">Space Mono</option>
+          <option value="Caveat">Caveat</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Text color</label>
+        <div class="swatches" id="colorSwatches"></div>
+      </div>
+    </div>
+
+    <!-- SIZE -->
+    <div class="field">
+      <label>Title size <span class="readout" id="sizeOut">64px</span></label>
+      <input type="range" id="fSize" min="24" max="160" value="64">
+    </div>
+
+    <!-- TEXT POSITION -->
+    <div class="field">
+      <label>Text position</label>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="pos-grid" id="posGrid"></div>
+        <div style="font-size:11px;color:var(--sub)">Click a zone to position your text on the slide</div>
+      </div>
+    </div>
+
+    <!-- ATTACHED IMAGE -->
+    <div class="field">
+      <label>Attached image <span class="readout" id="imgSizeOut" style="display:none"></span></label>
+      <label class="upbtn">
+        🖼️ Upload image
+        <input type="file" accept="image/*" id="fAttImg" style="display:none">
+      </label>
+      <div class="img-strip" id="imgStrip" style="display:none"></div>
+      <div id="imgSizeWrap" style="display:none;margin-top:8px">
+        <label style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px">Image size <span class="readout" id="imgSzRead">60%</span></label>
+        <input type="range" id="fImgSize" min="20" max="95" value="60">
+      </div>
+    </div>
+
+    <!-- SLIDE DURATION -->
+    <div class="field">
+      <label>Display time per slide <span class="readout" id="durOut">10s</span></label>
+      <input type="range" id="fDur" min="5" max="60" step="5" value="10">
+    </div>
+
+    <!-- EXPIRY -->
+    <div class="field">
+      <label>Take down after</label>
+      <select id="fExpiry">
+        <option value="1h">1 hour</option>
+        <option value="3h">3 hours</option>
+        <option value="eod">End of today</option>
+        <option value="1d" selected>1 day</option>
+        <option value="3d">3 days</option>
+        <option value="7d">1 week</option>
+        <option value="never">Never</option>
+      </select>
+    </div>
+
+    <button class="postbtn" id="postBtn" onclick="post()" disabled>Post to the Board</button>
+    <div class="status-msg" id="postStatus"></div>
+  </div>
+
+  <!-- PREVIEW (portrait) -->
+  <div class="panel right">
+    <div class="preview-label">Live preview (portrait)</div>
+    <div class="preview-frame" id="previewFrame"></div>
+    <div style="font-size:11px;color:var(--sub);text-align:center">Matches what teachers will see on the vertical board</div>
+  </div>
+</div>
+
+<!-- MANAGE TAB -->
+<div id="tab-manage" style="display:none;padding:24px;max-width:800px;margin:0 auto;width:100%">
+  <div style="font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">All announcements</div>
+  <div class="manage-list" id="manageList"></div>
+</div>
+
+<!-- KIOSK -->
+<div id="kiosk">
+  <button class="ks-exit" onclick="exitKiosk()">Exit (Esc)</button>
+  <div id="kiosk-inner">
+    <div id="ksSlides"></div>
+    <div class="ks-progress" id="ksProgress" style="width:0%"></div>
+  </div>
 </div>
 
 <script>
-/* ---------------- firebase (same project as app.html / roomlog.html) ---------------- */
-const FIREBASE_HARDCODED={apiKey:'AIzaSyDEk2S078stgwL5Z4_QluThFvxhwFKtwhk',authDomain:'jacobsen-attendance-2627.firebaseapp.com',databaseURL:'https://jacobsen-attendance-2627-default-rtdb.firebaseio.com/',appId:'1:778437887000:web:429ff330dc7847c2cdef6d'};
-let fbDb = null;
-try{
-  const fbApp = firebase.apps.length ? firebase.app() : firebase.initializeApp(FIREBASE_HARDCODED);
-  fbDb = firebase.database(fbApp);
-}catch(e){ console.error('Firebase init failed:', e); }
-const BOARD_PATH = 'board/announcements';
-
-/* ---------------- state ---------------- */
-const BG_PRESETS = [
-  {v:'#0B1220'}, {v:'#131B2E'}, {v:'#FFFFFF'}, {v:'#FFF6E5'},
-  {v:'linear-gradient(135deg,#0B1220,#1B2540)'},
-  {v:'linear-gradient(135deg,#3A1C71,#D76D77,#FFAF7B)'},
-  {v:'linear-gradient(135deg,#134E5E,#71B280)'},
-  {v:'linear-gradient(135deg,#0F2027,#203A43,#2C5364)'},
-  {v:'linear-gradient(135deg,#DA22FF,#9733EE)'},
-  {v:'linear-gradient(135deg,#F7971E,#FFD200)'},
-  {v:'linear-gradient(135deg,#EB3349,#F45C43)'},
-];
-const COLOR_PRESETS = ['#FFFFFF','#FFB84D','#4ADE80','#7DD3FC','#F87171','#0B1220','#FDE68A','#C4B5FD'];
-
-let state = {
-  title:'', message:'',
-  bg:'linear-gradient(135deg,#0B1220,#1B2540)', bgIsImage:false,
-  font:"'Big Shoulders Display'", color:'#FFFFFF', size:56, hAlign:'center', vAlign:'center',
-  imageData:null, imagePos:{x:50,y:26}, duration:'1d', customDate:null
+// ── State ─────────────────────────────────────────────────────
+const ST = {
+  title:'', msg:'',
+  bg:'linear-gradient(160deg,#003DA5 0%,#0d1117 100%)', bgIsImg:false,
+  font:"'Big Shoulders Display'", color:'#ffffff', size:64,
+  pos:'mc',  // tl tc tr ml mc mr bl bc br
+  imgData:null, imgSize:60,
+  dur:10, expiry:'1d'
 };
 
-/* ---------------- helpers ---------------- */
-function computeExpiry(duration, customDate){
-  const now = new Date();
-  if(duration==='never') return null;
-  if(duration==='custom'){
-    if(!customDate) return null;
-    const t = new Date(customDate).getTime();
-    return isNaN(t) ? null : t;
-  }
-  if(duration==='eod'){ const e=new Date(now); e.setHours(23,59,59,999); return e.getTime(); }
-  const map = {'1h':1,'3h':3,'1d':24,'3d':72,'7d':168};
-  const hrs = map[duration] || 24;
-  return now.getTime() + hrs*3600*1000;
-}
-function fmtTimeLeft(expiresAt){
-  if(expiresAt===null) return 'No expiration';
-  const diff = expiresAt - Date.now();
-  if(diff<=0) return 'Expired';
-  const h = Math.floor(diff/3600000);
-  const d = Math.floor(h/24);
-  if(d>=1) return `Live · ${d}d ${h%24}h left`;
-  if(h>=1) return `Live · ${h}h left`;
-  return `Live · ${Math.max(1,Math.floor(diff/60000))}m left`;
-}
-function resizeImage(file, maxDim, quality){
-  return new Promise((resolve,reject)=>{
-    const reader = new FileReader();
-    reader.onload = e=>{
-      const img = new Image();
-      img.onload = ()=>{
-        let w=img.width, h=img.height;
-        if(w>h && w>maxDim){ h=h*maxDim/w; w=maxDim; }
-        else if(h>maxDim){ w=w*maxDim/h; h=maxDim; }
-        const canvas = document.createElement('canvas');
-        canvas.width=w; canvas.height=h;
-        canvas.getContext('2d').drawImage(img,0,0,w,h);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+const BG_PRESETS = [
+  'linear-gradient(160deg,#003DA5,#0d1117)',
+  'linear-gradient(160deg,#0d1117,#1a1a2e)',
+  '#ffffff',
+  '#fff8f0',
+  'linear-gradient(160deg,#0f2027,#203a43,#2c5364)',
+  'linear-gradient(160deg,#1a1a2e,#16213e,#0f3460)',
+  'linear-gradient(160deg,#134e5e,#71b280)',
+  'linear-gradient(160deg,#3a1c71,#d76d77,#ffaf7b)',
+  'linear-gradient(160deg,#f7971e,#ffd200)',
+  'linear-gradient(160deg,#eb3349,#f45c43)',
+  'linear-gradient(160deg,#da22ff,#9733ee)',
+  'linear-gradient(160deg,#000000,#434343)',
+];
+const COLOR_PRESETS = ['#ffffff','#FFB84D','#4ade80','#7dd3fc','#f87171','#0d1117','#fde68a','#c4b5fd','#fb923c'];
+const GRAD_DIRS = [
+  {lbl:'↓',v:'to bottom'},
+  {lbl:'↗',v:'to top right'},
+  {lbl:'→',v:'to right'},
+  {lbl:'↘',v:'135deg'},
+  {lbl:'↙',v:'225deg'},
+  {lbl:'○',v:'radial'},
+];
+let customGradDir = 'to bottom';
 
-/* ---------------- build swatches ---------------- */
-function buildSwatches(){
-  const bgRow = document.getElementById('bg-swatches');
-  BG_PRESETS.forEach(p=>{
-    const el = document.createElement('div');
-    el.className='swatch';
-    el.style.background = p.v;
-    if(p.v===state.bg) el.classList.add('selected');
-    el.onclick = ()=>{ state.bg=p.v; state.bgIsImage=false;
-      document.getElementById('bg-image-hint').style.display='none';
-      refreshSwatchSelection(); renderPreview(); };
+const POS_MAP = {
+  tl:{j:'flex-start',a:'flex-start'}, tc:{j:'flex-start',a:'center'}, tr:{j:'flex-start',a:'flex-end'},
+  ml:{j:'center',   a:'flex-start'}, mc:{j:'center',   a:'center'}, mr:{j:'center',   a:'flex-end'},
+  bl:{j:'flex-end',  a:'flex-start'}, bc:{j:'flex-end',  a:'center'}, br:{j:'flex-end',  a:'flex-end'},
+};
+const POS_ICONS = {tl:'↖',tc:'↑',tr:'↗',ml:'←',mc:'·',mr:'→',bl:'↙',bc:'↓',br:'↘'};
+
+function esc(s){ const d=document.createElement('div');d.textContent=s||'';return d.innerHTML; }
+
+// ── Build controls ────────────────────────────────────────────
+function buildControls(){
+  // BG swatches
+  const bgRow=document.getElementById('bgSwatches');
+  BG_PRESETS.forEach(v=>{
+    const el=document.createElement('div');
+    el.className='sw'+(v===ST.bg?' sel':'');
+    el.style.background=v;
+    el.onclick=()=>{ ST.bg=v;ST.bgIsImg=false;updateBgSel();renderPreview(); };
     bgRow.appendChild(el);
   });
-  const custom = document.createElement('label');
-  custom.className='swatch custom-color-wrap';
-  custom.innerHTML = `<input type="color" value="#334155">`;
-  custom.querySelector('input').addEventListener('input', e=>{
-    state.bg = e.target.value; state.bgIsImage=false;
-    document.getElementById('bg-image-hint').style.display='none';
-    refreshSwatchSelection(); renderPreview();
-  });
-  bgRow.appendChild(custom);
+  const customBgC=document.createElement('label');
+  customBgC.className='sw custom';
+  customBgC.innerHTML='<input type="color" value="#334155">';
+  customBgC.querySelector('input').oninput=e=>{ST.bg=e.target.value;ST.bgIsImg=false;updateBgSel();renderPreview();};
+  bgRow.appendChild(customBgC);
 
-  const colorRow = document.getElementById('color-swatches');
+  // Gradient directions
+  const dirRow=document.getElementById('gradDir');
+  GRAD_DIRS.forEach(d=>{
+    const b=document.createElement('button');
+    b.className='dir-btn'+(d.v===customGradDir?' sel':'');
+    b.textContent=d.lbl; b.title=d.v;
+    b.onclick=()=>{customGradDir=d.v;dirRow.querySelectorAll('.dir-btn').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');updateGradPreview();};
+    dirRow.appendChild(b);
+  });
+  updateGradPreview();
+
+  // Color swatches
+  const cRow=document.getElementById('colorSwatches');
   COLOR_PRESETS.forEach(c=>{
-    const el = document.createElement('div');
-    el.className='swatch';
-    el.style.background = c;
-    el.style.border = '2px solid ' + (c===state.color? '#FFB84D':'rgba(255,255,255,0.15)');
-    if(c===state.color) el.classList.add('selected');
-    el.onclick = ()=>{ state.color=c; refreshSwatchSelection(); renderPreview(); };
-    colorRow.appendChild(el);
+    const el=document.createElement('div');
+    el.className='sw'+(c===ST.color?' sel':'');
+    el.style.cssText=`background:${c};border:${c==="#ffffff"?'1px solid var(--bdr)':''}`;
+    el.onclick=()=>{ ST.color=c;updateColorSel();renderPreview(); };
+    cRow.appendChild(el);
   });
-}
-function refreshSwatchSelection(){
-  document.querySelectorAll('#bg-swatches .swatch').forEach((el,i)=>{
-    if(i<BG_PRESETS.length) el.classList.toggle('selected', BG_PRESETS[i].v===state.bg && !state.bgIsImage);
-  });
-  document.querySelectorAll('#color-swatches .swatch').forEach((el,i)=>{
-    el.classList.toggle('selected', COLOR_PRESETS[i]===state.color);
+  const customCC=document.createElement('label');
+  customCC.className='sw custom';
+  customCC.innerHTML='<input type="color" value="#ffffff">';
+  customCC.querySelector('input').oninput=e=>{ST.color=e.target.value;updateColorSel();renderPreview();};
+  cRow.appendChild(customCC);
+
+  // Position grid
+  const grid=document.getElementById('posGrid');
+  ['tl','tc','tr','ml','mc','mr','bl','bc','br'].forEach(k=>{
+    const c=document.createElement('div');
+    c.className='pos-cell'+(k===ST.pos?' sel':'');
+    c.textContent=POS_ICONS[k];
+    c.onclick=()=>{ ST.pos=k; grid.querySelectorAll('.pos-cell').forEach(x=>x.classList.remove('sel')); c.classList.add('sel'); renderPreview(); };
+    grid.appendChild(c);
   });
 }
 
-/* ---------------- wire up form ---------------- */
-document.getElementById('f-title').addEventListener('input', e=>{ state.title=e.target.value; renderPreview(); });
-document.getElementById('f-message').addEventListener('input', e=>{ state.message=e.target.value; renderPreview(); });
-document.getElementById('f-font').addEventListener('change', e=>{ state.font=e.target.value; renderPreview(); });
-document.getElementById('f-size').addEventListener('input', e=>{
-  state.size = parseInt(e.target.value);
-  document.getElementById('size-readout').textContent = state.size+'px';
-  renderPreview();
-});
-document.querySelectorAll('#pos-grid button').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('#pos-grid button').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    state.hAlign = btn.dataset.h;
-    state.vAlign = btn.dataset.v;
-    renderPreview();
-  });
-});
-document.getElementById('f-duration').addEventListener('change', e=>{
-  state.duration = e.target.value;
-  document.getElementById('f-custom-wrap').style.display = (e.target.value==='custom') ? 'flex':'none';
-  if(e.target.value==='custom') updateCustomDate();
-});
-function updateCustomDate(){
-  const d = document.getElementById('f-custom-date-part').value;
-  const t = document.getElementById('f-custom-time-part').value;
-  state.customDate = (d && t) ? `${d}T${t}` : (d ? `${d}T23:59` : null);
-}
-document.getElementById('f-custom-date-part').addEventListener('change', updateCustomDate);
-document.getElementById('f-custom-time-part').addEventListener('change', updateCustomDate);
-// default the custom date/time pickers to something sensible so they aren't blank
-(function(){
-  const now = new Date();
-  const in1week = new Date(now.getTime() + 7*86400000);
-  const pad = n => String(n).padStart(2,'0');
-  document.getElementById('f-custom-date-part').value = `${in1week.getFullYear()}-${pad(in1week.getMonth()+1)}-${pad(in1week.getDate())}`;
-  document.getElementById('f-custom-time-part').value = '15:00';
-  document.getElementById('f-custom-date-part').min = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
-})();
+function updateBgSel(){ document.querySelectorAll('#bgSwatches .sw:not(.custom)').forEach((el,i)=>el.classList.toggle('sel',BG_PRESETS[i]===ST.bg&&!ST.bgIsImg)); }
+function updateColorSel(){ document.querySelectorAll('#colorSwatches .sw:not(.custom)').forEach((el,i)=>el.classList.toggle('sel',COLOR_PRESETS[i]===ST.color)); }
 
-document.getElementById('f-bg-upload').addEventListener('change', async e=>{
-  const file = e.target.files[0]; if(!file) return;
-  const dataUrl = await resizeImage(file, 1600, 0.82);
-  state.bg = `url(${dataUrl})`; state.bgIsImage = true;
-  document.getElementById('bg-image-hint').style.display='block';
-  refreshSwatchSelection(); renderPreview();
-});
-document.getElementById('f-img-upload').addEventListener('change', async e=>{
-  const file = e.target.files[0]; if(!file) return;
-  const dataUrl = await resizeImage(file, 1000, 0.82);
-  state.imageData = dataUrl;
-  state.imagePos = {x:50, y:26};
-  const strip = document.getElementById('img-preview-strip');
+function updateGradPreview(){
+  const c1=document.getElementById('gc1').value;
+  const c2=document.getElementById('gc2').value;
+  const dir=customGradDir;
+  const grad=dir==='radial'?`radial-gradient(ellipse at center,${c1},${c2})`:`linear-gradient(${dir},${c1},${c2})`;
+  document.getElementById('gradPreview').style.background=grad;
+}
+document.getElementById('gc1').oninput=updateGradPreview;
+document.getElementById('gc2').oninput=updateGradPreview;
+
+function applyCustomGrad(){
+  const c1=document.getElementById('gc1').value;
+  const c2=document.getElementById('gc2').value;
+  const dir=customGradDir;
+  ST.bg=dir==='radial'?`radial-gradient(ellipse at center,${c1},${c2})`:`linear-gradient(${dir},${c1},${c2})`;
+  ST.bgIsImg=false; updateBgSel(); renderPreview();
+}
+
+// ── Wire inputs ───────────────────────────────────────────────
+document.getElementById('fTitle').oninput=e=>{ST.title=e.target.value;checkBtn();renderPreview();};
+document.getElementById('fMsg').oninput=e=>{ST.msg=e.target.value;renderPreview();};
+document.getElementById('fFont').onchange=e=>{ST.font=e.target.value;renderPreview();};
+document.getElementById('fSize').oninput=e=>{ST.size=+e.target.value;document.getElementById('sizeOut').textContent=ST.size+'px';renderPreview();};
+document.getElementById('fImgSize').oninput=e=>{ST.imgSize=+e.target.value;document.getElementById('imgSzRead').textContent=ST.imgSize+'%';renderPreview();};
+document.getElementById('fDur').oninput=e=>{ST.dur=+e.target.value;document.getElementById('durOut').textContent=ST.dur+'s';};
+document.getElementById('fExpiry').onchange=e=>ST.expiry=e.target.value;
+
+document.getElementById('fBgImg').onchange=async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  ST.bg='url('+await resize(f,1600,.85)+')'; ST.bgIsImg=true;
+  updateBgSel(); renderPreview();
+};
+document.getElementById('fAttImg').onchange=async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  ST.imgData=await resize(f,1200,.85);
+  const strip=document.getElementById('imgStrip');
   strip.style.display='flex';
-  strip.innerHTML = `<img src="${dataUrl}"><button onclick="removeAttachedImage()">Remove</button><span class="hint" style="margin-left:6px;">Drag the photo in the preview to reposition it</span>`;
+  strip.innerHTML=`<img src="${ST.imgData}"><button onclick="removeImg()">✕ Remove</button>`;
+  document.getElementById('imgSizeWrap').style.display='block';
+  document.getElementById('imgSzRead').textContent=ST.imgSize+'%';
   renderPreview();
-});
-function removeAttachedImage(){
-  state.imageData = null;
-  state.imagePos = {x:50, y:26};
-  document.getElementById('img-preview-strip').style.display='none';
-  document.getElementById('f-img-upload').value='';
+};
+
+function removeImg(){
+  ST.imgData=null;
+  document.getElementById('imgStrip').style.display='none';
+  document.getElementById('imgSizeWrap').style.display='none';
+  document.getElementById('fAttImg').value='';
   renderPreview();
 }
 
-/* ---------------- preview ---------------- */
-function slideInnerHTML(a, editable){
-  const hAlign = a.hAlign || a.align || 'center';
-  const vAlign = a.vAlign || 'center';
-  const textAlign = hAlign==='center' ? 'center' : (hAlign==='flex-end' ? 'right' : 'left');
-  const bgStyle = a.bgIsImage ? `background-image:${a.bg};background-size:cover;background-position:center;` : `background:${a.bg};`;
-  const textColor = a.color;
-  const hasImg = !!a.imageData && !a.bgIsImage;
-  // when text sits over a photo, give it a soft backdrop + shadow so it stays readable anywhere it's placed
-  const overPhoto = hasImg || a.bgIsImage;
-  const textWrapStyle = (overPhoto
-    ? `background:rgba(0,0,0,0.38);backdrop-filter:blur(2px);border-radius:14px;padding:0.5em 0.8em;`
-    : ``) + `display:inline-block;max-width:92%;`;
-  const pos = a.imagePos || {x:50, y:26};
-  const imageMarkup = hasImg
-    ? `<img class="att" src="${a.imageData}" ${editable?'data-draggable-img="1"':''} style="position:absolute;left:${pos.x}%;top:${pos.y}%;transform:translate(-50%,-50%);max-width:55%;max-height:42%;object-fit:contain;border-radius:10px;box-shadow:0 12px 30px -10px rgba(0,0,0,0.5);${editable?'cursor:grab;touch-action:none;':''}">`
-    : '';
-  return `
-    <div style="position:relative;${bgStyle}width:100%;height:100%;overflow:hidden;">
-      <div style="position:absolute;inset:0;display:flex;align-items:${vAlign};justify-content:${hAlign};padding:6%;box-sizing:border-box;">
-        <div style="${textWrapStyle}">
-          ${a.title ? `<div style="font-family:${a.font};font-weight:800;color:${textColor};font-size:${a.size*0.62}px;line-height:1.05;margin-bottom:0.25em;text-align:${textAlign};text-shadow:${overPhoto?'0 2px 10px rgba(0,0,0,0.6)':'none'};">${escapeHtml(a.title)}</div>` : ''}
-          ${a.message ? `<div class="msg" style="font-family:${a.font};color:${textColor};font-size:${a.size*0.4}px;line-height:1.3;opacity:0.94;text-align:${textAlign};text-shadow:${overPhoto?'0 2px 8px rgba(0,0,0,0.6)':'none'};">${escapeHtml(a.message)}</div>` : ''}
-        </div>
-      </div>
-      ${imageMarkup}
-    </div>`;
-}
-function escapeHtml(s){
-  const d = document.createElement('div'); d.textContent = s||''; return d.innerHTML;
-}
-function renderPreview(){
-  // always target the stable #preview-frame container directly — never look up a child
-  // id that this same function just overwrote, which is what caused the earlier crash
-  const frame = document.getElementById('preview-frame');
-  frame.innerHTML = slideInnerHTML(state, true);
-  document.getElementById('post-btn').disabled = !(state.title.trim() || state.message.trim());
-  wireImageDrag();
-}
-function wireImageDrag(){
-  const frame = document.getElementById('preview-frame');
-  const img = frame.querySelector('[data-draggable-img]');
-  if(!img) return;
-  let dragging = false;
-  const move = (clientX, clientY)=>{
-    const rect = frame.getBoundingClientRect();
-    let x = ((clientX - rect.left) / rect.width) * 100;
-    let y = ((clientY - rect.top) / rect.height) * 100;
-    x = Math.max(4, Math.min(96, x));
-    y = Math.max(4, Math.min(96, y));
-    state.imagePos = {x, y};
-    img.style.left = x + '%';
-    img.style.top = y + '%';
-  };
-  img.addEventListener('pointerdown', e=>{
-    e.preventDefault();
-    dragging = true;
-    img.setPointerCapture(e.pointerId);
-    img.style.cursor = 'grabbing';
-  });
-  img.addEventListener('pointermove', e=>{
-    if(!dragging) return;
-    move(e.clientX, e.clientY);
-  });
-  const stop = e=>{
-    if(!dragging) return;
-    dragging = false;
-    img.style.cursor = 'grab';
-  };
-  img.addEventListener('pointerup', stop);
-  img.addEventListener('pointercancel', stop);
-}
+function checkBtn(){ document.getElementById('postBtn').disabled=!(ST.title.trim()||ST.msg.trim()); }
 
-/* ---------------- storage / posting ---------------- */
-async function postAnnouncement(){
-  const btn = document.getElementById('post-btn');
-  const statusEl = document.getElementById('post-status');
-  if(!fbDb){ statusEl.textContent = 'Not connected to Firebase.'; statusEl.style.color='var(--danger)'; return; }
-  btn.disabled = true; statusEl.textContent = 'Posting...';
-  try{
-    const id = 'a' + Date.now() + Math.random().toString(36).slice(2,7);
-    const expiresAt = computeExpiry(state.duration, state.customDate);
-    const record = {
-      id, title: state.title.trim(), message: state.message.trim(),
-      bg: state.bg, bgIsImage: state.bgIsImage, font: state.font, color: state.color,
-      size: state.size, hAlign: state.hAlign, vAlign: state.vAlign, imageData: state.imageData, imagePos: state.imagePos,
-      createdAt: Date.now(), expiresAt
+async function resize(file,max,q){
+  return new Promise(res=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        if(w>h&&w>max){h=h*max/w;w=max;}else if(h>max){w=w*max/h;h=max;}
+        const c=document.createElement('canvas');c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        res(c.toDataURL('image/jpeg',q));
+      };
+      img.src=e.target.result;
     };
-    await fbDb.ref(BOARD_PATH + '/' + id).set(record);
-    statusEl.textContent = 'Posted! It will appear on the board.';
-    statusEl.style.color = 'var(--good)';
-    // reset a few fields but keep styling choices for fast repeat posting
-    state.title=''; state.message=''; state.imageData=null; state.imagePos={x:50,y:26};
-    document.getElementById('f-title').value=''; document.getElementById('f-message').value='';
-    document.getElementById('img-preview-strip').style.display='none';
-    document.getElementById('f-img-upload').value='';
-    renderPreview();
-    loadManageList();
-  }catch(err){
-    statusEl.textContent = 'Could not post — please try again.';
-    statusEl.style.color = 'var(--danger)';
-    console.error(err);
-  }finally{
-    btn.disabled = !(state.title.trim() || state.message.trim());
-    setTimeout(()=>{ statusEl.textContent=''; }, 4000);
+    r.readAsDataURL(file);
+  });
+}
+
+// ── Render slide HTML ─────────────────────────────────────────
+function slideHTML(a, scale=1){
+  const pos=POS_MAP[a.pos||'mc'];
+  const bgStyle=a.bgIsImg
+    ?`background-image:${a.bg};background-size:cover;background-position:center`
+    :`background:${a.bg}`;
+  const tsz=a.size*scale; const msz=tsz*0.52;
+  const talign=pos.a==='flex-start'?'left':pos.a==='flex-end'?'right':'center';
+
+  // Image position: top if text is bottom, bottom if text is top, center otherwise
+  const imgPosV=a.pos?.startsWith('b')?'top:7%':'bottom:7%';
+  const imgPosH=a.pos?.endsWith('l')?'left:4%':a.pos?.endsWith('r')?'right:4%':'left:50%;transform:translateX(-50%)';
+  const imgW=(a.imgSize||60)+'%';
+
+  return `<div style="${bgStyle};width:100%;height:100%;position:relative;overflow:hidden">
+    ${a.imgData?`<img class="att" src="${a.imgData}" style="position:absolute;${imgPosV};${imgPosH};width:${imgW};max-height:45%;object-fit:contain;border-radius:10px">`:''}
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:${pos.j};align-items:${pos.a};padding:8%">
+      <div style="display:flex;flex-direction:column;gap:${tsz*0.15}px;text-align:${talign};max-width:100%">
+        ${a.title?`<div style="font-family:${a.font};font-weight:900;color:${a.color};font-size:${tsz}px;line-height:1.05;word-break:break-word">${esc(a.title)}</div>`:''}
+        ${a.msg?`<div style="font-family:${a.font};color:${a.color};font-size:${msz}px;line-height:1.35;opacity:.9;word-break:break-word;white-space:pre-wrap">${esc(a.msg)}</div>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderPreview(){
+  document.getElementById('previewFrame').innerHTML=slideHTML(ST, 0.28);
+}
+
+// ── Storage ───────────────────────────────────────────────────
+async function getAllAnnouncements(){
+  try{
+    const list=await window.storage.list('ann:',true);
+    if(!list?.keys) return [];
+    const items=[];
+    for(const k of list.keys){
+      try{ const r=await window.storage.get(k,true); if(r?.value)items.push(JSON.parse(r.value)); }catch(e){}
+    }
+    return items.sort((a,b)=>a.createdAt-b.createdAt);
+  }catch(e){return[];}
+}
+
+function expireAt(v){
+  const n=Date.now();
+  if(v==='never') return null;
+  if(v==='eod'){const d=new Date();d.setHours(23,59,59,999);return d.getTime();}
+  const map={1:1,3:3,1:24,3:72,7:168}; // overridden below
+  const hrs={'1h':1,'3h':3,'1d':24,'3d':72,'7d':168}[v]||24;
+  return n+hrs*3600000;
+}
+function timeLeft(exp){
+  if(exp===null) return 'No expiry';
+  const d=exp-Date.now(); if(d<=0) return 'Expired';
+  const h=Math.floor(d/3600000), dy=Math.floor(h/24);
+  if(dy>=1) return `Live · ${dy}d ${h%24}h left`;
+  if(h>=1) return `Live · ${h}h left`;
+  return `Live · ${Math.max(1,Math.floor(d/60000))}m left`;
+}
+
+async function post(){
+  const btn=document.getElementById('postBtn');
+  const st=document.getElementById('postStatus');
+  btn.disabled=true; st.className='status-msg'; st.textContent='Posting…';
+  try{
+    const id='a'+Date.now()+Math.random().toString(36).slice(2,6);
+    const rec={id,...JSON.parse(JSON.stringify(ST)),createdAt:Date.now(),expiresAt:expireAt(ST.expiry)};
+    await window.storage.set('ann:'+id,JSON.stringify(rec),true);
+    st.className='status-msg ok'; st.textContent='✓ Posted! Appears on the board now.';
+    ST.title='';ST.msg='';ST.imgData=null;
+    document.getElementById('fTitle').value='';
+    document.getElementById('fMsg').value='';
+    document.getElementById('imgStrip').style.display='none';
+    document.getElementById('imgSizeWrap').style.display='none';
+    renderPreview(); checkBtn();
+    setTimeout(()=>st.textContent='',4000);
+  }catch(e){
+    st.className='status-msg err'; st.textContent='Failed — please try again.';
   }
 }
 
-async function fetchAllAnnouncements(){
-  if(!fbDb) return [];
-  try{
-    const snap = await fbDb.ref(BOARD_PATH).once('value');
-    const val = snap.val() || {};
-    const items = Object.values(val);
-    items.sort((a,b)=> a.createdAt - b.createdAt);
-    return items;
-  }catch(e){ console.error(e); return []; }
+// ── Tabs ──────────────────────────────────────────────────────
+function showTab(t){
+  document.getElementById('tab-post').style.display=t==='post'?'grid':'none';
+  document.getElementById('tab-manage').style.display=t==='manage'?'block':'none';
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('on',[t==='post',t==='manage',false][i]));
+  if(t==='manage') loadManage();
 }
 
-async function loadManageList(){
-  const wrap = document.getElementById('manage-list');
-  wrap.innerHTML = '<div class="empty-note">Loading...</div>';
-  const items = await fetchAllAnnouncements();
-  if(items.length===0){ wrap.innerHTML = '<div class="empty-note">Nothing posted yet.</div>'; return; }
-  wrap.innerHTML = '';
-  items.slice().reverse().forEach(a=>{
-    const expired = a.expiresAt!==null && a.expiresAt<=Date.now();
-    const card = document.createElement('div');
-    card.className='manage-card';
-    const swatchStyle = a.bgIsImage ? `background-image:${a.bg};background-size:cover;` : `background:${a.bg};`;
-    card.innerHTML = `
-      <div class="swatch-mini" style="${swatchStyle}"></div>
-      <div class="manage-info">
-        <div class="t">${escapeHtml(a.title || '(no title)')}</div>
-        <div class="m">${escapeHtml(a.message || '')}</div>
-      </div>
-      <div class="manage-status ${expired?'expired':'live'}">${expired?'Expired':fmtTimeLeft(a.expiresAt)}</div>
-      <button class="del-btn" data-id="${a.id}">Remove</button>
-    `;
-    card.querySelector('.del-btn').addEventListener('click', async ()=>{
-      if(!fbDb) return;
-      await fbDb.ref(BOARD_PATH + '/' + a.id).remove();
-      loadManageList();
-    });
+async function loadManage(){
+  const wrap=document.getElementById('manageList');
+  wrap.innerHTML='<div class="empty">Loading…</div>';
+  const all=await getAllAnnouncements();
+  if(!all.length){wrap.innerHTML='<div class="empty">Nothing posted yet.</div>';return;}
+  wrap.innerHTML='';
+  all.slice().reverse().forEach(a=>{
+    const exp=a.expiresAt!==null&&a.expiresAt<=Date.now();
+    const card=document.createElement('div');
+    card.className='mcard';
+    const sw=a.bgIsImg?`background-image:${a.bg};background-size:cover`:`background:${a.bg}`;
+    card.innerHTML=`<div class="mcard-swatch" style="${sw}"></div>
+      <div class="mcard-info"><div class="t">${esc(a.title||'(no title)')}</div><div class="s">${esc(a.msg||'')} · ${a.dur}s/slide</div></div>
+      <div class="badge ${exp?'exp':'live'}">${exp?'Expired':timeLeft(a.expiresAt)}</div>
+      <button class="delbtn" data-id="${a.id}">Remove</button>`;
+    card.querySelector('.delbtn').onclick=async()=>{
+      await window.storage.delete('ann:'+a.id,true); loadManage();
+    };
     wrap.appendChild(card);
   });
 }
 
-/* ---------------- tabs ---------------- */
-function switchTab(name){
-  document.getElementById('tab-post').classList.toggle('active', name==='post');
-  document.getElementById('tab-manage').classList.toggle('active', name==='manage');
-  document.getElementById('view-post').style.display = name==='post' ? 'grid':'none';
-  document.getElementById('view-manage').style.display = name==='manage' ? 'grid':'none';
-  if(name==='manage') loadManageList();
-}
+// ── Kiosk ─────────────────────────────────────────────────────
+let ksItems=[], ksIdx=0, ksTimer=null, ksPollTimer=null;
 
-/* ---------------- board display ---------------- */
-let boardTimer=null, boardPollTimer=null, boardItems=[], boardIndex=0;
-const SLIDE_SECONDS = 8;
-
-function launchBoard(){
-  document.getElementById('board-view').classList.add('active');
-  const el = document.documentElement;
-  if(el.requestFullscreen) el.requestFullscreen().catch(()=>{});
-  startBoardLoop();
+async function launchKiosk(){
+  document.getElementById('kiosk').classList.add('on');
+  try{ await document.documentElement.requestFullscreen(); }catch(e){}
+  await refreshKiosk();
+  ksIdx=0; showKsSlide();
+  ksPollTimer=setInterval(refreshKiosk,15000);
 }
-function exitBoard(){
-  document.getElementById('board-view').classList.remove('active');
+function exitKiosk(){
+  document.getElementById('kiosk').classList.remove('on');
   if(document.fullscreenElement) document.exitFullscreen().catch(()=>{});
-  clearTimeout(boardTimer); clearInterval(boardPollTimer);
+  clearTimeout(ksTimer); clearInterval(ksPollTimer);
 }
-document.addEventListener('keydown', e=>{ if(e.key==='Escape') exitBoard(); });
+document.addEventListener('keydown',e=>{if(e.key==='Escape')exitKiosk();});
 
-async function refreshBoardItems(){
-  const all = await fetchAllAnnouncements();
-  boardItems = all.filter(a=> a.expiresAt===null || a.expiresAt>Date.now());
+async function refreshKiosk(){
+  const all=await getAllAnnouncements();
+  ksItems=all.filter(a=>a.expiresAt===null||a.expiresAt>Date.now());
 }
-async function startBoardLoop(){
-  await refreshBoardItems();
-  boardIndex = 0;
-  showBoardSlide();
-  boardPollTimer = setInterval(refreshBoardItems, 15000);
-}
-function showBoardSlide(){
-  const container = document.getElementById('board-slides');
-  const progress = document.getElementById('board-progress');
-  clearTimeout(boardTimer);
-  if(boardItems.length===0){
-    container.innerHTML = `<div class="board-empty"><div class="mk">THE BOARD</div><div>No announcements right now.</div></div>`;
-    progress.style.width='0%';
-    boardTimer = setTimeout(showBoardSlide, 5000);
+
+function showKsSlide(){
+  clearTimeout(ksTimer);
+  const container=document.getElementById('ksSlides');
+  const prog=document.getElementById('ksProgress');
+  if(!ksItems.length){
+    container.innerHTML='<div class="ks-empty">THE BOARD</div>';
+    prog.style.width='0%';
+    ksTimer=setTimeout(showKsSlide,5000);
     return;
   }
-  if(boardIndex>=boardItems.length) boardIndex=0;
-  const a = boardItems[boardIndex];
-  const slide = document.createElement('div');
-  slide.className='board-slide';
-  slide.innerHTML = slideInnerHTML(a);
+  if(ksIdx>=ksItems.length) ksIdx=0;
+  const a=ksItems[ksIdx];
+  const dur=a.dur||10;
+
+  const slide=document.createElement('div');
+  slide.className='ks-slide';
+  slide.innerHTML=slideHTML(a, 1);
   container.innerHTML='';
   container.appendChild(slide);
-  requestAnimationFrame(()=> slide.classList.add('show'));
+  requestAnimationFrame(()=>slide.classList.add('show'));
 
-  progress.style.transition='none';
-  progress.style.width='0%';
-  requestAnimationFrame(()=>{
-    progress.style.transition = `width ${SLIDE_SECONDS}s linear`;
-    progress.style.width='100%';
-  });
+  prog.style.transition='none'; prog.style.width='0%';
+  requestAnimationFrame(()=>{ prog.style.transition=`width ${dur}s linear`; prog.style.width='100%'; });
 
-  boardTimer = setTimeout(()=>{
-    boardIndex = (boardIndex+1) % boardItems.length;
-    showBoardSlide();
-  }, SLIDE_SECONDS*1000);
+  ksTimer=setTimeout(()=>{ksIdx=(ksIdx+1)%ksItems.length;showKsSlide();},dur*1000);
 }
 
-/* ---------------- init ---------------- */
-buildSwatches();
+// ── Init ──────────────────────────────────────────────────────
+buildControls();
 renderPreview();
-// auto-launch straight into board mode if opened with ?board=1 (for the kiosk display's saved browser shortcut)
-if(new URLSearchParams(location.search).get('board')==='1'){
-  document.getElementById('view-post').style.display='none';
-  launchBoard();
-}
+if(new URLSearchParams(location.search).get('board')==='1') launchKiosk();
 </script>
-</body>
-</html>
+</body></html>
