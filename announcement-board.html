@@ -325,7 +325,7 @@ let state = {
   title:'', message:'',
   bg:'linear-gradient(135deg,#0B1220,#1B2540)', bgIsImage:false,
   font:"'Big Shoulders Display'", color:'#FFFFFF', size:56, hAlign:'center', vAlign:'center',
-  imageData:null, duration:'1d', customDate:null
+  imageData:null, imagePos:{x:50,y:26}, duration:'1d', customDate:null
 };
 
 /* ---------------- helpers ---------------- */
@@ -468,39 +468,46 @@ document.getElementById('f-img-upload').addEventListener('change', async e=>{
   const file = e.target.files[0]; if(!file) return;
   const dataUrl = await resizeImage(file, 1000, 0.82);
   state.imageData = dataUrl;
+  state.imagePos = {x:50, y:26};
   const strip = document.getElementById('img-preview-strip');
   strip.style.display='flex';
-  strip.innerHTML = `<img src="${dataUrl}"><button onclick="removeAttachedImage()">Remove</button>`;
+  strip.innerHTML = `<img src="${dataUrl}"><button onclick="removeAttachedImage()">Remove</button><span class="hint" style="margin-left:6px;">Drag the photo in the preview to reposition it</span>`;
   renderPreview();
 });
 function removeAttachedImage(){
   state.imageData = null;
+  state.imagePos = {x:50, y:26};
   document.getElementById('img-preview-strip').style.display='none';
   document.getElementById('f-img-upload').value='';
   renderPreview();
 }
 
 /* ---------------- preview ---------------- */
-function slideInnerHTML(a){
+function slideInnerHTML(a, editable){
   const hAlign = a.hAlign || a.align || 'center';
   const vAlign = a.vAlign || 'center';
   const textAlign = hAlign==='center' ? 'center' : (hAlign==='flex-end' ? 'right' : 'left');
   const bgStyle = a.bgIsImage ? `background-image:${a.bg};background-size:cover;background-position:center;` : `background:${a.bg};`;
   const textColor = a.color;
+  const hasImg = !!a.imageData && !a.bgIsImage;
   // when text sits over a photo, give it a soft backdrop + shadow so it stays readable anywhere it's placed
-  const overPhoto = !!a.imageData || a.bgIsImage;
-  const textWrapStyle = overPhoto
-    ? `background:rgba(0,0,0,0.38);backdrop-filter:blur(2px);border-radius:14px;padding:0.5em 0.8em;display:inline-block;max-width:100%;`
-    : ``;
+  const overPhoto = hasImg || a.bgIsImage;
+  const textWrapStyle = (overPhoto
+    ? `background:rgba(0,0,0,0.38);backdrop-filter:blur(2px);border-radius:14px;padding:0.5em 0.8em;`
+    : ``) + `display:inline-block;max-width:92%;`;
+  const pos = a.imagePos || {x:50, y:26};
+  const imageMarkup = hasImg
+    ? `<img class="att" src="${a.imageData}" ${editable?'data-draggable-img="1"':''} style="position:absolute;left:${pos.x}%;top:${pos.y}%;transform:translate(-50%,-50%);max-width:55%;max-height:42%;object-fit:contain;border-radius:10px;box-shadow:0 12px 30px -10px rgba(0,0,0,0.5);${editable?'cursor:grab;touch-action:none;':''}">`
+    : '';
   return `
-    <div style="${bgStyle} width:100%;height:100%;display:flex;align-items:${vAlign};justify-content:${hAlign};padding:6%;box-sizing:border-box;">
-      <div style="display:flex;flex-direction:column;align-items:${hAlign};max-width:100%;">
-        ${a.imageData && !a.bgIsImage ? `<img class="att" src="${a.imageData}" style="max-width:100%;max-height:38vh;object-fit:contain;border-radius:10px;margin-bottom:0.6em;box-shadow:0 12px 30px -10px rgba(0,0,0,0.5);">` : ''}
+    <div style="position:relative;${bgStyle}width:100%;height:100%;overflow:hidden;">
+      <div style="position:absolute;inset:0;display:flex;align-items:${vAlign};justify-content:${hAlign};padding:6%;box-sizing:border-box;">
         <div style="${textWrapStyle}">
           ${a.title ? `<div style="font-family:${a.font};font-weight:800;color:${textColor};font-size:${a.size*0.62}px;line-height:1.05;margin-bottom:0.25em;text-align:${textAlign};text-shadow:${overPhoto?'0 2px 10px rgba(0,0,0,0.6)':'none'};">${escapeHtml(a.title)}</div>` : ''}
           ${a.message ? `<div class="msg" style="font-family:${a.font};color:${textColor};font-size:${a.size*0.4}px;line-height:1.3;opacity:0.94;text-align:${textAlign};text-shadow:${overPhoto?'0 2px 8px rgba(0,0,0,0.6)':'none'};">${escapeHtml(a.message)}</div>` : ''}
         </div>
       </div>
+      ${imageMarkup}
     </div>`;
 }
 function escapeHtml(s){
@@ -509,8 +516,43 @@ function escapeHtml(s){
 function renderPreview(){
   // always target the stable #preview-frame container directly — never look up a child
   // id that this same function just overwrote, which is what caused the earlier crash
-  document.getElementById('preview-frame').innerHTML = slideInnerHTML(state);
+  const frame = document.getElementById('preview-frame');
+  frame.innerHTML = slideInnerHTML(state, true);
   document.getElementById('post-btn').disabled = !(state.title.trim() || state.message.trim());
+  wireImageDrag();
+}
+function wireImageDrag(){
+  const frame = document.getElementById('preview-frame');
+  const img = frame.querySelector('[data-draggable-img]');
+  if(!img) return;
+  let dragging = false;
+  const move = (clientX, clientY)=>{
+    const rect = frame.getBoundingClientRect();
+    let x = ((clientX - rect.left) / rect.width) * 100;
+    let y = ((clientY - rect.top) / rect.height) * 100;
+    x = Math.max(4, Math.min(96, x));
+    y = Math.max(4, Math.min(96, y));
+    state.imagePos = {x, y};
+    img.style.left = x + '%';
+    img.style.top = y + '%';
+  };
+  img.addEventListener('pointerdown', e=>{
+    e.preventDefault();
+    dragging = true;
+    img.setPointerCapture(e.pointerId);
+    img.style.cursor = 'grabbing';
+  });
+  img.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    move(e.clientX, e.clientY);
+  });
+  const stop = e=>{
+    if(!dragging) return;
+    dragging = false;
+    img.style.cursor = 'grab';
+  };
+  img.addEventListener('pointerup', stop);
+  img.addEventListener('pointercancel', stop);
 }
 
 /* ---------------- storage / posting ---------------- */
@@ -525,14 +567,14 @@ async function postAnnouncement(){
     const record = {
       id, title: state.title.trim(), message: state.message.trim(),
       bg: state.bg, bgIsImage: state.bgIsImage, font: state.font, color: state.color,
-      size: state.size, hAlign: state.hAlign, vAlign: state.vAlign, imageData: state.imageData,
+      size: state.size, hAlign: state.hAlign, vAlign: state.vAlign, imageData: state.imageData, imagePos: state.imagePos,
       createdAt: Date.now(), expiresAt
     };
     await fbDb.ref(BOARD_PATH + '/' + id).set(record);
     statusEl.textContent = 'Posted! It will appear on the board.';
     statusEl.style.color = 'var(--good)';
     // reset a few fields but keep styling choices for fast repeat posting
-    state.title=''; state.message=''; state.imageData=null;
+    state.title=''; state.message=''; state.imageData=null; state.imagePos={x:50,y:26};
     document.getElementById('f-title').value=''; document.getElementById('f-message').value='';
     document.getElementById('img-preview-strip').style.display='none';
     document.getElementById('f-img-upload').value='';
