@@ -6,6 +6,8 @@
 <title>The Board — Announcements</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Poppins:wght@400;600;700&family=Playfair+Display:wght@700;900&family=Bebas+Neue&family=Oswald:wght@500;700&family=Merriweather:wght@700&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
   :root{
     --navy: #0B1220;
@@ -297,6 +299,15 @@
 </div>
 
 <script>
+/* ---------------- firebase (same project as app.html / roomlog.html) ---------------- */
+const FIREBASE_HARDCODED={apiKey:'AIzaSyDEk2S078stgwL5Z4_QluThFvxhwFKtwhk',authDomain:'jacobsen-attendance-2627.firebaseapp.com',databaseURL:'https://jacobsen-attendance-2627-default-rtdb.firebaseio.com/',appId:'1:778437887000:web:429ff330dc7847c2cdef6d'};
+let fbDb = null;
+try{
+  const fbApp = firebase.apps.length ? firebase.app() : firebase.initializeApp(FIREBASE_HARDCODED);
+  fbDb = firebase.database(fbApp);
+}catch(e){ console.error('Firebase init failed:', e); }
+const BOARD_PATH = 'board/announcements';
+
 /* ---------------- state ---------------- */
 const BG_PRESETS = [
   {v:'#0B1220'}, {v:'#131B2E'}, {v:'#FFFFFF'}, {v:'#FFF6E5'},
@@ -506,6 +517,7 @@ function renderPreview(){
 async function postAnnouncement(){
   const btn = document.getElementById('post-btn');
   const statusEl = document.getElementById('post-status');
+  if(!fbDb){ statusEl.textContent = 'Not connected to Firebase.'; statusEl.style.color='var(--danger)'; return; }
   btn.disabled = true; statusEl.textContent = 'Posting...';
   try{
     const id = 'a' + Date.now() + Math.random().toString(36).slice(2,7);
@@ -516,7 +528,7 @@ async function postAnnouncement(){
       size: state.size, hAlign: state.hAlign, vAlign: state.vAlign, imageData: state.imageData,
       createdAt: Date.now(), expiresAt
     };
-    await window.storage.set('announcement:'+id, JSON.stringify(record), true);
+    await fbDb.ref(BOARD_PATH + '/' + id).set(record);
     statusEl.textContent = 'Posted! It will appear on the board.';
     statusEl.style.color = 'var(--good)';
     // reset a few fields but keep styling choices for fast repeat posting
@@ -537,16 +549,11 @@ async function postAnnouncement(){
 }
 
 async function fetchAllAnnouncements(){
+  if(!fbDb) return [];
   try{
-    const listResult = await window.storage.list('announcement:', true);
-    if(!listResult || !listResult.keys) return [];
-    const items = [];
-    for(const key of listResult.keys){
-      try{
-        const res = await window.storage.get(key, true);
-        if(res && res.value) items.push(JSON.parse(res.value));
-      }catch(e){ /* skip unreadable */ }
-    }
+    const snap = await fbDb.ref(BOARD_PATH).once('value');
+    const val = snap.val() || {};
+    const items = Object.values(val);
     items.sort((a,b)=> a.createdAt - b.createdAt);
     return items;
   }catch(e){ console.error(e); return []; }
@@ -573,7 +580,8 @@ async function loadManageList(){
       <button class="del-btn" data-id="${a.id}">Remove</button>
     `;
     card.querySelector('.del-btn').addEventListener('click', async ()=>{
-      await window.storage.delete('announcement:'+a.id, true);
+      if(!fbDb) return;
+      await fbDb.ref(BOARD_PATH + '/' + a.id).remove();
       loadManageList();
     });
     wrap.appendChild(card);
