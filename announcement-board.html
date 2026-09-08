@@ -101,6 +101,24 @@ input[type=range]{width:100%;accent-color:var(--amb)}
 .ks-prog{position:fixed;bottom:0;left:0;height:5px;background:var(--amb);z-index:10001}
 .ks-exit{position:fixed;top:14px;right:14px;z-index:10002;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);color:#fff;padding:6px 12px;border-radius:7px;font-size:12px;cursor:pointer;opacity:.35;font-family:'Inter',sans-serif}
 .ks-exit:hover{opacity:1}
+
+/* PIN MODAL */
+.pin-ov{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9998;display:none;align-items:center;justify-content:center}
+.pin-ov.show{display:flex}
+.pin-box{background:var(--sur);border:1px solid var(--bdr);border-radius:14px;padding:28px 24px;width:300px;text-align:center}
+.pin-title{font-size:16px;font-weight:800;margin-bottom:6px}
+.pin-sub{font-size:12px;color:var(--sub);margin-bottom:18px}
+.pin-dots{display:flex;justify-content:center;gap:10px;margin-bottom:18px}
+.pin-dot{width:16px;height:16px;border-radius:50%;background:var(--bdr);transition:background .1s}
+.pin-dot.filled{background:var(--amb)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.pin-key{background:#0d1117;border:1px solid var(--bdr);color:var(--txt);border-radius:10px;padding:14px;font-family:'Inter',sans-serif;font-size:18px;font-weight:700;cursor:pointer;transition:all .1s}
+.pin-key:active{background:var(--amb);color:#1a1400;border-color:var(--amb)}
+.pin-key.del{font-size:14px;color:var(--sub)}
+.pin-err{color:#f87171;font-size:12px;font-weight:700;min-height:16px;margin-bottom:8px}
+.pin-cancel{background:none;border:1px solid var(--bdr);color:var(--sub);border-radius:8px;padding:8px 20px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;width:100%}
+.pin-cancel:hover{border-color:#f87171;color:#f87171}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 </style>
 </head>
 <body>
@@ -558,7 +576,7 @@ function loadManage(){
         <div class="mi"><div class="t">${esc(a.title||'(no title)')}</div><div class="s">${esc((a.msg||'').slice(0,50))} · ${a.dur||10}s/slide</div></div>
         <div class="badge ${exp?'exp':'live'}">${timeLeft(a.expiresAt)}</div>
         <button class="delbtn" data-id="${a.id}">Remove</button>`;
-      card.querySelector('.delbtn').onclick=async()=>{await ANN_REF.child(a.id).remove();loadManage();};
+      card.querySelector('.delbtn').onclick=()=>openPinModal(async()=>{await ANN_REF.child(a.id).remove();loadManage();});
       wrap.appendChild(card);
     });
   });
@@ -609,6 +627,87 @@ function showKsSlide(){
   ksTimer=setTimeout(()=>{ksIdx=(ksIdx+1)%ksItems.length;showKsSlide();},dur*1000);
 }
 
+
+// ── PIN Modal ─────────────────────────────────────────────────
+let _pinEntry = '', _pinCallback = null;
+
+// SHA-256 of "4134" — correct hash checked without storing raw PIN
+const CORRECT_HASH = '8bf5af51c28ee4a2f0e77dfd2ebfe6fd4c77c06b7ea7c0d12ae23acf1fcb2ee4';
+
+async function sha256(str){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function openPinModal(callback){
+  _pinEntry=''; _pinCallback=callback;
+  updatePinDots(); 
+  document.getElementById('pinErr').textContent='';
+  document.getElementById('pinOv').classList.add('show');
+}
+function closePinModal(){
+  _pinEntry=''; _pinCallback=null;
+  document.getElementById('pinOv').classList.remove('show');
+}
+
+function pinKey(k){
+  if(k==='del'){ _pinEntry=_pinEntry.slice(0,-1); updatePinDots(); return; }
+  if(k==='clear'){ _pinEntry=''; updatePinDots(); return; }
+  if(_pinEntry.length>=4) return;
+  _pinEntry+=k;
+  updatePinDots();
+  if(_pinEntry.length===4) verifyPin();
+}
+
+function updatePinDots(){
+  document.querySelectorAll('.pin-dot').forEach((d,i)=>d.classList.toggle('filled',i<_pinEntry.length));
+}
+
+async function verifyPin(){
+  const hash = await sha256(_pinEntry);
+  if(hash===CORRECT_HASH){
+    document.getElementById('pinOv').classList.remove('show');
+    if(_pinCallback) _pinCallback();
+    _pinEntry=''; _pinCallback=null;
+  } else {
+    document.getElementById('pinErr').textContent='Incorrect code — try again';
+    _pinEntry='';
+    updatePinDots();
+    // Shake animation
+    const box=document.querySelector('.pin-box');
+    box.style.animation='shake .3s ease';
+    setTimeout(()=>box.style.animation='',300);
+  }
+}
+
 if(new URLSearchParams(location.search).get('board')==='1')launchKiosk();
 </script>
+
+<div class="pin-ov" id="pinOv">
+  <div class="pin-box">
+    <div class="pin-title">🔒 Admin Code Required</div>
+    <div class="pin-sub">Enter the 4-digit code to remove this announcement</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot"></div><div class="pin-dot"></div>
+      <div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key del" onclick="pinKey('del')">⌫</button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key del" onclick="pinKey('clear')">✕</button>
+    </div>
+    <div class="pin-err" id="pinErr"></div>
+    <button class="pin-cancel" onclick="closePinModal()">Cancel</button>
+  </div>
+</div>
+
 </body></html>
