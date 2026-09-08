@@ -632,7 +632,7 @@ function showKsSlide(){
 let _pinEntry = '', _pinCallback = null;
 
 // SHA-256 of "4134" — correct hash checked without storing raw PIN
-const CORRECT_HASH = '8bf5af51c28ee4a2f0e77dfd2ebfe6fd4c77c06b7ea7c0d12ae23acf1fcb2ee4';
+const CORRECT_HASH = 'eb51765053fdd178d1430759c3c3c71d388eae337cfde43f62f4320a454ff9f9';
 
 async function sha256(str){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
